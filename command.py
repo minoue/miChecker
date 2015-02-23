@@ -11,10 +11,17 @@ class Commands(object):
         self.checkList = checkList
 
     def initData(self, path):
-        self.children = cmds.listRelatives(path, ad=True, path=True, fullPath=True)
-        self.allTransforms = cmds.listRelatives(path, ad=True, path=True, fullPath=True, type='transform')
-        self.allShapes = cmds.listRelatives(path, ad=True, path=True, fullPath=True, type='mesh')
-
+        self.rootPath = str(path)
+        self.children = cmds.listRelatives(self.rootPath, ad=True, path=True, fullPath=True)
+        self.allTransforms = cmds.listRelatives(self.rootPath, ad=True, path=True, fullPath=True, type='transform')
+        self.allShapes = cmds.listRelatives(self.rootPath, ad=True, path=True, fullPath=True, type='mesh')
+        if self.children is None:
+            self.children = []
+        if self.allTransforms is None:
+            self.allTransforms = []
+        if self.allShapes is None:
+            self.allShapes = []
+        
         dataDict = {}
         for item in self.children:
             dataDict[item] = {}
@@ -22,6 +29,34 @@ class Commands(object):
                 dataDict[item][check] = []
 
         return dataDict, self.children, self.allTransforms, self.allShapes
+
+    def searchHistory(self, mesh):
+        historyList = cmds.listHistory(mesh)
+        idGroup = [i for i in historyList if cmds.nodeType(i) == "groupId"]
+        historyList = [i for i in historyList if i not in idGroup]
+        if len(historyList) == 1:
+            historyList = []
+        return historyList
+
+    def searchTransformations(self, transform):
+        transformList = []
+        tx = cmds.getAttr(transform + ".translateX")
+        ty = cmds.getAttr(transform + ".translateY")
+        tz = cmds.getAttr(transform + ".translateZ")
+        rx = cmds.getAttr(transform + ".rotateX")
+        ry = cmds.getAttr(transform + ".rotateY")
+        rz = cmds.getAttr(transform + ".rotateZ")
+        sx = cmds.getAttr(transform + ".scaleX")
+        sy = cmds.getAttr(transform + ".scaleY")
+        sz = cmds.getAttr(transform + ".scaleZ")
+        tlist = [tx, ty, tz].count(0.0)
+        rlist = [rx, ry, rz].count(0.0)
+        slist = [sx, sy, sz].count(1.0)
+        if [tlist, rlist, slist] == [3, 3, 3]:
+            transformList = []
+        else:
+            transformList = [transform]
+        return transformList
 
     def searchTriangles(self, mesh):
         trianglesList = []
@@ -120,24 +155,15 @@ class Commands(object):
             intermediateObjList = []
         return intermediateObjList
 
-    def searchBadShapeName(self, transform):
-        shapeNodeList = []
-        '''
-        shapeNode = cmds.listRelatives(
-            transform, s=True, path=True, fullPath=True)
-        if shapeNode is None:
-            shapeNodeList = []
+    def searchBadShapeName(self, mesh):
+        badShapeNodeList = []
+        meshNameShort = mesh.split("|")[-1]
+        parent = cmds.listRelatives(mesh, parent=True, type='transform')[0]
+        if meshNameShort == parent + "Shape":
+            badShapeNodeList = []
         else:
-            shapeNameLong = shapeNode[0]
-            transformNameLong = transform
-            shapeNameShort = shapeNameLong.split("|")[-1]
-            transformNameShort = transformNameLong.split("|")[-1]
-            if transformNameShort + 'Shape' == shapeNameShort:
-                shapeNodeList = []
-            else:
-                shapeNodeList = [shapeNameLong]
-        '''
-        return shapeNodeList
+            badShapeNodeList.append(mesh)
+        return badShapeNodeList
             
     def searchDuplicateNames(self, children):
         itemName = [i.split("|")[-1] for i in children]
@@ -186,3 +212,31 @@ class Commands(object):
         else:
             geoSuffixList = [child]
         return geoSuffixList
+
+    def searchLockedChannels(self, child):
+        attrs = cmds.listAttr(child)
+        lockedAttributes = []
+        for att in attrs:
+            try:
+                lockState = cmds.getAttr(child + "." + att, lock=True)
+                if lockState is True:
+                    lockedAttributes.append(att)
+                else:
+                    pass
+            except ValueError:
+                pass
+        return lockedAttributes
+
+    def searchKeyframes(self, child):
+        attrs = cmds.listAttr(child)
+        keyedAttributes = []
+        for att in attrs:
+            try:
+                keyState = cmds.keyframe(child + "." + att, q=True)
+                if keyState is None:
+                    pass
+                else:
+                    keyedAttributes.append(att)
+            except ValueError:
+                pass
+        return keyedAttributes
