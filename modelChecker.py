@@ -3,24 +3,42 @@ from functools import partial
 import maya.OpenMayaUI as mui
 import maya.cmds as cmds
 import sys
-# import shiboken
 import command
 reload(command)
 import sip
+# import shiboken
 
 
 def getMayaWindow():
     ptr = mui.MQtUtil.mainWindow()
-    # return shiboken.wrapInstance(long(ptr), QtGui.QWidget)
+    # return shiboken.wrapInstance(long(ptr), QtGui.QMainWindow)
     return sip.wrapinstance(long(ptr), QtCore.QObject)
 
 
 class CustomBoxLayout(QtGui.QBoxLayout):
+    """ Custom layout with less spacing between widgets """
+
     def __init__(self, parent=None):
         super(CustomBoxLayout, self).__init__(parent)
 
         self.setSpacing(2)
         self.setContentsMargins(2, 2, 2, 2)
+
+
+class CustomLabel(QtGui.QLabel):
+    """ Custom QLabel to show green/red color """
+
+    def __init__(self, parent=None):
+        super(CustomLabel, self).__init__(parent)
+
+    def toRed(self):
+        self.setStyleSheet('background-color: darkred; border-radius: 4px; border-width: 1px; border-color: gray; border-style: solid')
+
+    def toGreen(self):
+        self.setStyleSheet( 'background-color: green; border-radius: 4px; border-width: 1px; border-color: gray; border-style: solid')
+
+    def toDefault(self):
+        self.setStyleSheet( 'background-color:; border-radius: 4px; border-width: 1px; border-color: gray; border-style: solid')
 
 
 class ModelChecker(QtGui.QDialog):
@@ -62,9 +80,12 @@ class ModelChecker(QtGui.QDialog):
             'lockedChannels',
             'keyframes']
 
+        # Command class setup
+        self.cmd = command.Commands(self.checkList)
+
+        # Create GUI
         self.createUI()
 
-        self.cmd = command.Commands(self.checkList)
 
     def createUI(self):
         ######################
@@ -111,15 +132,17 @@ class ModelChecker(QtGui.QDialog):
 
         """ result label wigets """
         for i in self.checkList:
-            exec("self.%sResultLabel = QtGui.QLabel('%s')" % (i, i))
+            exec("self.%sResultLabel = CustomLabel('%s')" % (i, i))
 
         """ fix button widgets """
         for i in self.checkList:
             exec("self.%sFixButton = QtGui.QPushButton()" % i)
             exec("self.%sFixButton.setFixedWidth(100)" % i)
-            exec("self.%sFixButton.setEnabled(False)" % i)
+            # exec("self.%sFixButton.setEnabled(False)" % i)
         self.historyFixButton.setText('Delete All')
+        self.historyFixButton.clicked.connect(self.cmd.fixHistory)
         self.transformFixButton.setText('Freeze All')
+        self.transformFixButton.clicked.connect(self.cmd.fixTransform)
         self.trianglesFixButton.setEnabled(False)
         self.nGonsFixButton.setEnabled(False)
         self.nonManifoldVtxFixButton.setEnabled(False)
@@ -128,15 +151,22 @@ class ModelChecker(QtGui.QDialog):
         self.concaveFacesFixButton.setEnabled(False)
         self.badExtraordinaryVtxFixButton.setEnabled(False)
         self.oppositeFixButton.setText('Fix All')
+        self.oppositeFixButton.clicked.connect(self.cmd.fixOpposite)
         self.doubleSidedFixButton.setText('Fix All')
+        self.doubleSidedFixButton.clicked.connect(self.cmd.fixDoubleSided)
         self.intermediateObjFixButton.setText('Delete All')
+        self.intermediateObjFixButton.clicked.connect(self.cmd.fixIntermediateObj)
         self.shapeNamesFixButton.setText('Fix All')
         self.duplicateNamesFixButton.setEnabled(False)
         self.smoothPreviewFixButton.setText('Fix All')
+        self.smoothPreviewFixButton.clicked.connect(self.cmd.fixSmoothPreview)
         self.defaultShaderFixButton.setText('Set Lambert1')
+        self.defaultShaderFixButton.clicked.connect(self.cmd.fixShader)
         self.geoSuffixFixButton.setEnabled(False)
         self.lockedChannelsFixButton.setText('Unlock All')
+        self.lockedChannelsFixButton.clicked.connect(self.cmd.fixLockedChannels)
         self.keyframesFixButton.setText('Delete All')
+        self.keyframesFixButton.clicked.connect(self.cmd.fixKeyframes)
 
         """ progress bar """
         self.progressBar = QtGui.QProgressBar()
@@ -202,12 +232,6 @@ class ModelChecker(QtGui.QDialog):
         sel = self.selectedLE.text()
         self.dataDict, self.children, self.allTransforms, self.allShapes = self.cmd.initData(sel)
 
-        # If empty(None), change them to empty list
-        if self.allTransforms is None:
-            self.allTransforms = []
-        if self.allShapes is None:
-            self.allShapes = []
-
     def select(self):
         sel = cmds.ls(sl=True, fl=True, long=True)[0]
         self.selectedLE.setText(sel)
@@ -226,12 +250,11 @@ class ModelChecker(QtGui.QDialog):
     def errorClicked(self, *args):
         if args[0] is None:
             return
-
         try:
             selectedItems = [i.text() for i in args[0].listWidget().selectedItems()]
             cmds.select(selectedItems, r=True)
         except ValueError:
-            """ When channels/attributes are selected, do not try to select """
+            """ When channels/attributes/etc are selected, do not try to select """
             pass
 
     def resetSetting(self):
@@ -242,12 +265,12 @@ class ModelChecker(QtGui.QDialog):
         self.badExtraordinaryVtxCheckBox.setCheckState(QtCore.Qt.Unchecked)
         self.lockedChannelsCheckBox.setCheckState(QtCore.Qt.Unchecked)
         self.keyframesCheckBox.setCheckState(QtCore.Qt.Unchecked)
-        self.geoSuffixLineEdit01 = QtGui.QLineEdit("_GEP")
-        self.geoSuffixLineEdit02 = QtGui.QLineEdit("_GES")
-        self.geoSuffixLineEdit03 = QtGui.QLineEdit("_NRB")
-        self.geoSuffixLineEdit04 = QtGui.QLineEdit("_GRP")
-        self.geoSuffixLineEdit05 = QtGui.QLineEdit("_LOC")
-        self.geoSuffixLineEdit06 = QtGui.QLineEdit("_PLY")
+        self.geoSuffixLineEdit01.setText("_GEP")
+        self.geoSuffixLineEdit02.setText("_GES")
+        self.geoSuffixLineEdit03.setText("_NRB")
+        self.geoSuffixLineEdit04.setText("_GRP")
+        self.geoSuffixLineEdit05.setText("_LOC")
+        self.geoSuffixLineEdit06.setText("_PLY")
 
     def suffixList(self):
         suffix1 = str(self.geoSuffixLineEdit01.text())
@@ -271,22 +294,42 @@ class ModelChecker(QtGui.QDialog):
             suffix6 + "Shape"]
         return suffixList
 
+    def changeLabelColorbyResult(self):
+        """ Check each and make labels green if it's ok, otherwise red """
+
+        for i in self.checkList:
+            ifblock = """
+%sResult = [self.dataDict[child]['%s'] for child in self.children]\n
+if self.%sCheckBox.checkState() == 2:
+    if %sResult.count([]) == len(%sResult):\n
+        self.%sResultLabel.toGreen()\n
+    else:\n
+        self.%sResultLabel.toRed()\n
+else:
+    self.%sResultLabel.toDefault()\n
+
+            """ % (i, i, i, i, i, i, i, i)
+            exec(ifblock)
+
     def search(self):
+        """ Search all error """
+
         self.initData()
         self.badNodeListWidget.clear()
-
-        # init progressbar
 
         # List for adding to badnodelistwidget
         self.badNodeList = []
 
         if self.historyCheckBox.checkState() == 2:
+            # Init progress bar
             self.progressBar.reset()
             self.progressBar.setRange(1, len(self.allShapes))
             self.statusBar.showMessage('Searching history...')
             for mesh in self.allShapes:
+                # Find history and store to self.datadict
                 history = self.cmd.searchHistory(mesh)
                 self.dataDict[mesh]['history'] = history
+                # If history detected, add to badgeo list
                 if history != []:
                     self.badNodeList.append(mesh)
                 # Update progressbar
@@ -562,6 +605,8 @@ class ModelChecker(QtGui.QDialog):
 
         self.statusBar.showMessage('Searching finished...')
 
+        self.changeLabelColorbyResult()
+
 
 def main():
     global checkerWin
@@ -569,11 +614,9 @@ def main():
         checkerWin.close()
     except:
         pass
-    # app = QtGui.QApplication(sys.argv)
     checkerWin = ModelChecker()
     checkerWin.show()
     checkerWin.raise_()
-    # sys.exit(app.exec_())
 
 
 if __name__ == '__main__':
