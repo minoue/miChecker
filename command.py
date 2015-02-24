@@ -10,6 +10,11 @@ class Commands(object):
         super(Commands, self).__init__()
         self.checkList = checkList
 
+        self.rootPath = None
+        self.children = None
+        self.allTransforms = None
+        self.allShapes = None
+
     def initData(self, path):
         self.rootPath = str(path)
         self.children = cmds.listRelatives(self.rootPath, ad=True, path=True, fullPath=True)
@@ -17,8 +22,10 @@ class Commands(object):
         self.allShapes = cmds.listRelatives(self.rootPath, ad=True, path=True, fullPath=True, type='mesh')
         if self.children is None:
             self.children = []
+        self.children.append(self.rootPath)
         if self.allTransforms is None:
             self.allTransforms = []
+        self.allTransforms.append(self.rootPath)
         if self.allShapes is None:
             self.allShapes = []
         
@@ -28,12 +35,16 @@ class Commands(object):
             for check in self.checkList:
                 dataDict[item][check] = []
 
+        self.dataDict = dataDict
+
         return dataDict, self.children, self.allTransforms, self.allShapes
 
     def searchHistory(self, mesh):
         historyList = cmds.listHistory(mesh)
         idGroup = [i for i in historyList if cmds.nodeType(i) == "groupId"]
+        objectSet = [i for i in historyList if cmds.nodeType(i) == "objectSet"]
         historyList = [i for i in historyList if i not in idGroup]
+        historyList = [i for i in historyList if i not in objectSet]
         if len(historyList) == 1:
             historyList = []
         return historyList
@@ -240,3 +251,73 @@ class Commands(object):
             except ValueError:
                 pass
         return keyedAttributes
+
+    def fixHistory(self):
+        for i in self.allShapes:
+            try:
+                cmds.delete(i, ch=True)
+            except ValueError:
+                pass
+
+    def fixTransform(self):
+        for i in self.allTransforms:
+            try:
+                cmds.makeIdentity(i, apply=True, t=1, r=1, s=1, n=0)
+            except ValueError:
+                pass
+
+    def fixOpposite(self):
+        for i in self.allShapes:
+            try:
+                cmds.setAttr(i + ".opposite", 0)
+            except ValueError:
+                pass
+
+    def fixDoubleSided(self):
+        for i in self.allShapes:
+            try:
+                cmds.setAttr(item + ".doubleSided", 1)
+            except ValueError:
+                pass
+
+    def fixIntermediateObj(self):
+        for i in self.allShapes:
+            try:
+                if cmds.getAttr(i + ".intermediateObject") == True:
+                    cmds.delete(i)
+            except ValueError:
+                pass
+
+    def fixShapeNames(self):
+        pass
+
+    def fixSmoothPreview(self):
+        for i in self.allShapes:
+            try:
+                cmds.setAttr(i + ".displaySmoothMesh", 0)
+            except ValueError:
+                pass
+
+    def fixShader(self):
+        for i in self.allShapes:
+            try:
+                cmds.sets(i, forceElement='initialShadingGroup', edit=True)
+            except ValueError:
+                pass
+
+    def fixLockedChannels(self):
+        for i in self.children:
+            allAttributes = cmds.listAttr(child)
+            for att in allAttributes:
+                try:
+                    cmds.setAttr(child + "." + att, lock=False)
+                except:
+                    pass
+
+    def fixKeyframes(self):
+        for i in self.allTransforms:
+            try:
+                cmds.cutKey(i)
+            except:
+                pass
+
