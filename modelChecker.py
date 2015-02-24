@@ -92,6 +92,7 @@ class ModelChecker(QtGui.QDialog):
         self.geoSuffixLineEdit06 = QtGui.QLineEdit("_PLY")
         self.resetButton = QtGui.QPushButton("Reset")
         self.resetButton.setFixedHeight(40)
+        self.resetButton.clicked.connect(self.resetSetting)
 
         """ Bad nodes list widget """
         self.badNodeListWidget = QtGui.QListWidget()
@@ -232,6 +233,21 @@ class ModelChecker(QtGui.QDialog):
         except ValueError:
             """ When channels/attributes are selected, do not try to select """
             pass
+
+    def resetSetting(self):
+        self.badNodeListWidget.clear()
+        for i in self.checkList:
+            exec("self.%sListWidget.clear()" % i)
+            exec("self.%sCheckBox.setCheckState(QtCore.Qt.Checked)" % i)
+        self.badExtraordinaryVtxCheckBox.setCheckState(QtCore.Qt.Unchecked)
+        self.lockedChannelsCheckBox.setCheckState(QtCore.Qt.Unchecked)
+        self.keyframesCheckBox.setCheckState(QtCore.Qt.Unchecked)
+        self.geoSuffixLineEdit01 = QtGui.QLineEdit("_GEP")
+        self.geoSuffixLineEdit02 = QtGui.QLineEdit("_GES")
+        self.geoSuffixLineEdit03 = QtGui.QLineEdit("_NRB")
+        self.geoSuffixLineEdit04 = QtGui.QLineEdit("_GRP")
+        self.geoSuffixLineEdit05 = QtGui.QLineEdit("_LOC")
+        self.geoSuffixLineEdit06 = QtGui.QLineEdit("_PLY")
 
     def suffixList(self):
         suffix1 = str(self.geoSuffixLineEdit01.text())
