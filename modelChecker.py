@@ -157,6 +157,7 @@ class ModelChecker(QtGui.QDialog):
         self.intermediateObjFixButton.setText('Delete All')
         self.intermediateObjFixButton.clicked.connect(self.cmd.fixIntermediateObj)
         self.shapeNamesFixButton.setText('Fix All')
+        self.shapeNamesFixButton.clicked.connect(self.cmd.fixShapeNames)
         self.duplicateNamesFixButton.setEnabled(False)
         self.smoothPreviewFixButton.setText('Fix All')
         self.smoothPreviewFixButton.clicked.connect(self.cmd.fixSmoothPreview)

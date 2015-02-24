@@ -289,7 +289,16 @@ class Commands(object):
                 pass
 
     def fixShapeNames(self):
-        pass
+        for i in self.allShapes:
+            if cmds.getAttr(i + ".intermediateObject") == True:
+                # Ignore if it's intermediateobj
+                pass
+            else:
+                parent = cmds.listRelatives(i, parent=True, type='transform')[0]
+                if i == parent + "Shape":
+                    pass
+                else:
+                    cmds.rename(i, parent + "Shape")
 
     def fixSmoothPreview(self):
         for i in self.allShapes:
