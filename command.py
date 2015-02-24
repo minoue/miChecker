@@ -25,7 +25,6 @@ class Commands(object):
         self.children.append(self.rootPath)
         if self.allTransforms is None:
             self.allTransforms = []
-        self.allTransforms.append(self.rootPath)
         if self.allShapes is None:
             self.allShapes = []
         
