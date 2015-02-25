@@ -270,7 +270,7 @@ class Commands(object):
     def fixDoubleSided(self):
         for i in self.allShapes:
             try:
-                cmds.setAttr(item + ".doubleSided", 1)
+                cmds.setAttr(i + ".doubleSided", 1)
             except ValueError:
                 pass
 
