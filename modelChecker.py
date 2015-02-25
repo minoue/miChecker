@@ -263,6 +263,7 @@ class ModelChecker(QtGui.QDialog):
         for i in self.checkList:
             exec("self.%sListWidget.clear()" % i)
             exec("self.%sCheckBox.setCheckState(QtCore.Qt.Checked)" % i)
+            exec("self.%sResultLabel.toDefault()" % i)
         self.badExtraordinaryVtxCheckBox.setCheckState(QtCore.Qt.Unchecked)
         self.lockedChannelsCheckBox.setCheckState(QtCore.Qt.Unchecked)
         self.keyframesCheckBox.setCheckState(QtCore.Qt.Unchecked)
