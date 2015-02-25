@@ -252,7 +252,7 @@ class ModelChecker(QtGui.QDialog):
         if args[0] is None:
             return
         try:
-            selectedItems = [i.text() for i in args[0].listWidget().selectedItems()]
+            selectedItems = ["*" + i.text() for i in args[0].listWidget().selectedItems()]
             cmds.select(selectedItems, r=True)
         except ValueError:
             """ When channels/attributes/etc are selected, do not try to select """
@@ -273,6 +273,7 @@ class ModelChecker(QtGui.QDialog):
         self.geoSuffixLineEdit04.setText("_GRP")
         self.geoSuffixLineEdit05.setText("_LOC")
         self.geoSuffixLineEdit06.setText("_PLY")
+        self.progressBar.reset()
 
     def suffixList(self):
         suffix1 = str(self.geoSuffixLineEdit01.text())
@@ -513,22 +514,18 @@ else:
             self.progressBar.setRange(1, len(self.children))
             self.statusBar.showMessage('Searching duplicate names...')
             duplicateNames = self.cmd.searchDuplicateNames(self.children)
-            duplicateNamesShort = [i.split("|")[-1] for i in duplicateNames]
+            dupList = []
             for child in self.children:
-                duplicatedTwo = []
-                for name in duplicateNames:
-                    if child.split("|")[-1] == name.split("|")[-1]:
-                        duplicatedTwo.append(name)
-                        duplicatedTwo.append(child)
-                self.dataDict[child]['duplicateNames'] = list(set(duplicatedTwo))
+                shortName = child.split("|")[-1]
+                if shortName in duplicateNames:
+                    self.dataDict[child]['duplicateNames'] = [shortName]
+                    self.badNodeList.append(child)
+                else:
+                    self.dataDict[child]['duplicateNames'] = []
                 value = self.progressBar.value()
                 value += 1
                 self.progressBar.setValue(value)
                 QtCore.QCoreApplication.processEvents()
-            else:
-                self.dataDict[child]['duplicateNames'] = []
-            if duplicatedTwo != []:
-                self.badNodeList.extend(duplicateNames)
             
         if self.smoothPreviewCheckBox.checkState() == 2:
             self.progressBar.reset()

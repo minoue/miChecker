@@ -178,12 +178,7 @@ class Commands(object):
     def searchDuplicateNames(self, children):
         itemName = [i.split("|")[-1] for i in children]
         collection = Counter(itemName)
-        duplicateNames = [i for i in collection if collection[i] > 1]
-        duplicateNamesList = []
-        for child in children:
-            for name in duplicateNames:
-                if child.split("|")[-1] == name:
-                    duplicateNamesList.append(child)
+        duplicateNamesList = [i for i in collection if collection[i] > 1]
         return duplicateNamesList
 
     def searchSmoothPreviewed(self, mesh):
