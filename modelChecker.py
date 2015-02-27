@@ -80,6 +80,13 @@ class ModelChecker(QtGui.QDialog):
             'lockedChannels',
             'keyframes']
 
+        self.nodeIconDict = {
+            'mesh': ":polyMesh.png",
+            'transform': ':out_transform.png',
+            'locator': ':out_locator.png',
+            'nurbsSurface': ':out_nurbsSurface.png',
+            'nurbsCurve': ':out_nurbsCurve.png'}
+
         # Command class setup
         self.cmd = command.Commands(self.checkList)
 
@@ -600,7 +607,14 @@ else:
 
         # Remove duplicate items and add to list widget
         self.badNodeList = list(set(self.badNodeList))
-        self.badNodeListWidget.addItems(self.badNodeList)
+        for i in self.badNodeList:
+            item = QtGui.QListWidgetItem(i)
+            nt = cmds.nodeType(i)
+            try:
+                item.setIcon(QtGui.QIcon(self.nodeIconDict[nt]))
+            except KeyError:
+                pass
+            self.badNodeListWidget.addItem(item)
 
         self.statusBar.showMessage('Searching finished...')
 
