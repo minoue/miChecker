@@ -27,7 +27,7 @@ class Commands(object):
             self.allTransforms = []
         if self.allShapes is None:
             self.allShapes = []
-        
+
         dataDict = {}
         for item in self.children:
             dataDict[item] = {}
@@ -35,6 +35,21 @@ class Commands(object):
                 dataDict[item][check] = []
 
         self.dataDict = dataDict
+
+        """
+        dataDict structure
+        dataDict(dict) =
+            {'fullpath':
+                {'history': []}
+             fullpath2:
+                {'transform': []}
+                ....
+            }
+
+        self.children = list of all nodes(transform and shape nodes)
+        self.allTransforms = list of all transform nodes under a given group
+        self.allShapes = list of all shape nodes under a given group
+        """
 
         return dataDict, self.children, self.allTransforms, self.allShapes
 

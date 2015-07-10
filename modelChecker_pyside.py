@@ -5,14 +5,12 @@ import maya.cmds as cmds
 import sys
 import command
 reload(command)
-# import sip
 import shiboken
 
 
 def getMayaWindow():
     ptr = mui.MQtUtil.mainWindow()
     return shiboken.wrapInstance(long(ptr), QtGui.QMainWindow)
-    # return sip.wrapinstance(long(ptr), QtCore.QObject)
 
 
 class CustomBoxLayout(QtGui.QBoxLayout):
@@ -86,19 +84,16 @@ class ModelChecker(QtGui.QDialog):
         # Create GUI
         self.createUI()
 
-
     def createUI(self):
-        ######################
-        """ Create Widgets """
-        ######################
+        """ Create UI """
 
-        """ Top Area Widgets """
+        # Top Area Widgets
         self.selectedLE = QtGui.QLineEdit()
         self.selectedLE.setText('')
         self.selectBTN = QtGui.QPushButton('Select')
         self.selectBTN.clicked.connect(self.select)
 
-        """ Check box widgets """
+        # Check box widgets
         for i in self.checkList:
             exec("self.%sCheckBox = QtGui.QCheckBox('%s')" % (i, i))
             exec("self.%sCheckBox.setCheckState(QtCore.Qt.Checked)" % i)
@@ -115,11 +110,11 @@ class ModelChecker(QtGui.QDialog):
         self.resetButton.setFixedHeight(40)
         self.resetButton.clicked.connect(self.resetSetting)
 
-        """ Bad nodes list widget """
+        # Bad nodes list widget
         self.badNodeListWidget = QtGui.QListWidget()
         self.badNodeListWidget.currentItemChanged.connect(self.itemClicked)
 
-        """ error list widgets """
+        # error list widgets
         for i in self.checkList:
             exec("self.%sListWidget = QtGui.QListWidget()" % i)
             exec("self.%sListWidget.currentItemChanged.connect(self.errorClicked)" % i)
@@ -130,11 +125,11 @@ class ModelChecker(QtGui.QDialog):
         self.searchButton.setFixedHeight(150)
         self.searchButton.clicked.connect(self.search)
 
-        """ result label wigets """
+        # result label wigets
         for i in self.checkList:
             exec("self.%sResultLabel = CustomLabel('%s')" % (i, i))
 
-        """ fix button widgets """
+        # fix button widgets
         for i in self.checkList:
             exec("self.%sFixButton = QtGui.QPushButton()" % i)
             exec("self.%sFixButton.setFixedWidth(100)" % i)
@@ -169,16 +164,14 @@ class ModelChecker(QtGui.QDialog):
         self.keyframesFixButton.setText('Delete All')
         self.keyframesFixButton.clicked.connect(self.cmd.fixKeyframes)
 
-        """ progress bar """
+        # progress bar
         self.progressBar = QtGui.QProgressBar()
 
-        """ status bar """
+        # status bar
         self.statusBar = QtGui.QStatusBar()
         self.statusBar.showMessage("")
 
-        #########################
-        """ Layout Management """
-        #########################
+        # #### Layout Management #### #
         topLayout = CustomBoxLayout(QtGui.QBoxLayout.LeftToRight)
         topLayout.addWidget(self.selectedLE)
 
@@ -318,7 +311,12 @@ else:
         """ Search all error """
 
         self.initData()
+
+        # Clear all list widgets
         self.badNodeListWidget.clear()
+        for i in self.checkList:
+            c = "self.%sListWidget" % i
+            exec("%s.clear()" % c)
 
         # List for adding to badnodelistwidget
         self.badNodeList = []
@@ -526,7 +524,7 @@ else:
                 value += 1
                 self.progressBar.setValue(value)
                 QtCore.QCoreApplication.processEvents()
-            
+
         if self.smoothPreviewCheckBox.checkState() == 2:
             self.progressBar.reset()
             self.progressBar.setRange(1, len(self.allShapes))
