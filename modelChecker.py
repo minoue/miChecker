@@ -247,6 +247,7 @@ class ModelChecker(QtGui.QDialog):
         try:
             selectedItems = ["*" + i.text() for i in args[0].listWidget().selectedItems()]
             cmds.select(selectedItems, r=True)
+            cmds.setFocus("MayaWindow")
         except ValueError:
             """ When channels/attributes/etc are selected, do not try to select """
             pass
