@@ -2,6 +2,7 @@ from PySide import QtCore, QtGui
 from functools import partial
 import maya.OpenMayaUI as mui
 import maya.cmds as cmds
+import textwrap
 import sys
 import command
 reload(command)
@@ -50,9 +51,12 @@ class ModelChecker(QtGui.QDialog):
             except:
                 pass
 
-    def __init__(self, parent=getMayaWindow()):
+    def __init__(self, initialSelection, parent=getMayaWindow()):
         self.closeExistingWindow()
         super(ModelChecker, self).__init__(parent)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+
+        self.initialSelection = initialSelection
 
         self.setWindowTitle('Model Checker')
         self.setWindowFlags(QtCore.Qt.Tool)
@@ -89,7 +93,7 @@ class ModelChecker(QtGui.QDialog):
 
         # Top Area Widgets
         self.selectedLE = QtGui.QLineEdit()
-        self.selectedLE.setText('')
+        self.selectedLE.setText(self.initialSelection)
         self.selectBTN = QtGui.QPushButton('Select')
         self.selectBTN.clicked.connect(self.select)
 
@@ -295,18 +299,17 @@ class ModelChecker(QtGui.QDialog):
         """ Check each and make labels green if it's ok, otherwise red """
 
         for i in self.checkList:
-            ifblock = """
-%sResult = [self.dataDict[child]['%s'] for child in self.children]\n
-if self.%sCheckBox.checkState() == 2:
-    if %sResult.count([]) == len(%sResult):\n
-        self.%sResultLabel.toGreen()\n
-    else:\n
-        self.%sResultLabel.toRed()\n
-else:
-    self.%sResultLabel.toDefault()\n
-
+            ifblock = """\
+            %sResult = [self.dataDict[child]['%s'] for child in self.children]\n
+            if self.%sCheckBox.checkState() == 2:
+                if %sResult.count([]) == len(%sResult):\n
+                    self.%sResultLabel.toGreen()\n
+                else:\n
+                    self.%sResultLabel.toRed()\n
+            else:
+                self.%sResultLabel.toDefault()\n
             """ % (i, i, i, i, i, i, i, i)
-            exec(ifblock)
+            exec(textwrap.dedent(ifblock))
 
     def search(self):
         """ Search all error """
@@ -612,7 +615,14 @@ def main():
         checkerWin.close()
     except:
         pass
-    checkerWin = ModelChecker()
+
+    sel = cmds.ls(sl=True, long=True)
+    if len(sel) == 0:
+        sel = ""
+    else:
+        sel = sel[0]
+
+    checkerWin = ModelChecker(sel)
     checkerWin.show()
     checkerWin.raise_()
 
