@@ -311,6 +311,22 @@ class ModelChecker(QtGui.QDialog):
             """ % (i, i, i, i, i, i, i, i)
             exec(textwrap.dedent(ifblock))
 
+    def incrementProgressbar(self):
+        # current value 
+        value = self.progressBar.value()
+
+        # increment
+        value += 1
+
+        # Update
+        self.progressBar.setValue(value)
+        QtCore.QCoreApplication.processEvents()
+
+    def initProgressbar(self, list, word):
+        self.progressBar.reset()
+        self.progressBar.setRange(1, len(list))
+        self.statusBar.showMessage('Searching %s...' % word)
+
     def search(self):
         """ Search all error """
 
@@ -326,10 +342,7 @@ class ModelChecker(QtGui.QDialog):
         self.badNodeList = []
 
         if self.historyCheckBox.checkState() == 2:
-            # Init progress bar
-            self.progressBar.reset()
-            self.progressBar.setRange(1, len(self.allShapes))
-            self.statusBar.showMessage('Searching history...')
+            self.initProgressbar(self.allShapes, 'history')
             for mesh in self.allShapes:
                 # Find history and store to self.datadict
                 history = self.cmd.searchHistory(mesh)
@@ -338,183 +351,118 @@ class ModelChecker(QtGui.QDialog):
                 if history != []:
                     self.badNodeList.append(mesh)
                 # Update progressbar
-                value = self.progressBar.value()
-                value += 1
-                self.progressBar.setValue(value)
-                QtCore.QCoreApplication.processEvents()
+                self.incrementProgressbar()
 
         if self.transformCheckBox.checkState() == 2:
-            self.progressBar.reset()
-            self.progressBar.setRange(1, len(self.allTransforms))
-            self.statusBar.showMessage('Searching transforms...')
+            self.initProgressbar(self.allTransforms, 'transform')
             for transform in self.allTransforms:
                 transformList = self.cmd.searchTransformations(transform)
                 self.dataDict[transform]['transform'] = transformList
                 if transformList != []:
                     self.badNodeList.append(transform)
-                value = self.progressBar.value()
-                value += 1
-                self.progressBar.setValue(value)
-                QtCore.QCoreApplication.processEvents()
+                self.incrementProgressbar()
 
         if self.trianglesCheckBox.checkState() == 2:
-            self.progressBar.reset()
-            self.progressBar.setRange(1, len(self.allShapes))
-            self.statusBar.showMessage('Searching triangles...')
+            self.initProgressbar(self.allShapes, 'triangles')
             for mesh in self.allShapes:
                 triangles = self.cmd.searchTriangles(mesh)
                 self.dataDict[mesh]['triangles'] = triangles
                 if triangles != []:
                     self.badNodeList.append(mesh)
-                value = self.progressBar.value()
-                value += 1
-                self.progressBar.setValue(value)
-                QtCore.QCoreApplication.processEvents()
+                self.incrementProgressbar()
 
         if self.nGonsCheckBox.checkState() == 2:
-            self.progressBar.reset()
-            self.progressBar.setRange(1, len(self.allShapes))
-            self.statusBar.showMessage('Searching nGons...')
+            self.initProgressbar(self.allShapes, 'nGons')
             for mesh in self.allShapes:
                 nGons = self.cmd.searchNgons(mesh)
                 self.dataDict[mesh]['nGons'] = nGons
                 if nGons != []:
                     self.badNodeList.append(mesh)
-                value = self.progressBar.value()
-                value += 1
-                self.progressBar.setValue(value)
-                QtCore.QCoreApplication.processEvents()
+                self.incrementProgressbar()
 
         if self.nonManifoldVtxCheckBox.checkState() == 2:
-            self.progressBar.reset()
-            self.progressBar.setRange(1, len(self.allShapes))
-            self.statusBar.showMessage('Searching nonManifold vertices...')
+            self.initProgressbar(self.allShapes, 'nonManifold vertices')
             for mesh in self.allShapes:
                 nonManifoldVtx = self.cmd.searchNonManifoldVtx(mesh)
                 self.dataDict[mesh]['nonManifoldVtx'] = nonManifoldVtx
                 if nonManifoldVtx != []:
                     self.badNodeList.append(mesh)
-                value = self.progressBar.value()
-                value += 1
-                self.progressBar.setValue(value)
-                QtCore.QCoreApplication.processEvents()
+                self.incrementProgressbar()
 
         if self.nonManifoldEdgesCheckBox.checkState() == 2:
-            self.progressBar.reset()
-            self.progressBar.setRange(1, len(self.allShapes))
-            self.statusBar.showMessage('Searching nonManifold edges...')
+            self.initProgressbar(self.allShapes, 'nonManifold edges')
             for mesh in self.allShapes:
                 nonManifoldEdges = self.cmd.searchnonManifoldEdges(mesh)
                 self.dataDict[mesh]['nonManifoldEdges'] = nonManifoldEdges
                 if nonManifoldEdges != []:
                     self.badNodeList.append(mesh)
-                value = self.progressBar.value()
-                value += 1
-                self.progressBar.setValue(value)
-                QtCore.QCoreApplication.processEvents()
+                self.incrementProgressbar()
 
         if self.laminaFacesCheckBox.checkState() == 2:
-            self.progressBar.reset()
-            self.progressBar.setRange(1, len(self.allShapes))
-            self.statusBar.showMessage('Searching lamina faces...')
+            self.initProgressbar(self.allShapes, 'lamina faces')
             for mesh in self.allShapes:
                 laminaFaces = self.cmd.searchLaminaFaces(mesh)
                 self.dataDict[mesh]['laminaFaces'] = laminaFaces
                 if laminaFaces != []:
                     self.badNodeList.append(mesh)
-                value = self.progressBar.value()
-                value += 1
-                self.progressBar.setValue(value)
-                QtCore.QCoreApplication.processEvents()
+                self.incrementProgressbar()
 
         if self.concaveFacesCheckBox.checkState() == 2:
-            self.progressBar.reset()
-            self.progressBar.setRange(1, len(self.allShapes))
-            self.statusBar.showMessage('Searching concave faces...')
+            self.initProgressbar(self.allShapes, 'concave faces')
             for mesh in self.allShapes:
                 concaveFaces = self.cmd.searchConcaveFaces(mesh)
                 self.dataDict[mesh]['concaveFaces'] = concaveFaces
                 if concaveFaces != []:
                     self.badNodeList.append(mesh)
-                value = self.progressBar.value()
-                value += 1
-                self.progressBar.setValue(value)
-                QtCore.QCoreApplication.processEvents()
+                self.incrementProgressbar()
 
         if self.badExtraordinaryVtxCheckBox.checkState() == 2:
-            self.progressBar.reset()
-            self.progressBar.setRange(1, len(self.allShapes))
-            self.statusBar.showMessage('Searching bad extraordinary vertices...')
+            self.initProgressbar(self.allShapes, 'bad extraordinary vertices')
             for mesh in self.allShapes:
                 badExtraordinaryVtxList = self.cmd.searchBadExtraordinaryVtx(mesh)
                 self.dataDict[mesh]['badExtraordinaryVtx'] = badExtraordinaryVtxList
                 if badExtraordinaryVtxList != []:
                     self.badNodeList.append(mesh)
-                value = self.progressBar.value()
-                value += 1
-                self.progressBar.setValue(value)
-                QtCore.QCoreApplication.processEvents()
+                self.incrementProgressbar()
 
         if self.oppositeCheckBox.checkState() == 2:
-            self.progressBar.reset()
-            self.progressBar.setRange(1, len(self.allShapes))
-            self.statusBar.showMessage('Searching opposite shape...')
+            self.initProgressbar(self.allShapes, 'opposite shape')
             for mesh in self.allShapes:
                 opposite = self.cmd.searchOpposite(mesh)
                 self.dataDict[mesh]['opposite'] = opposite
                 if opposite != []:
                     self.badNodeList.append(mesh)
-                value = self.progressBar.value()
-                value += 1
-                self.progressBar.setValue(value)
-                QtCore.QCoreApplication.processEvents()
+                self.incrementProgressbar()
 
         if self.doubleSidedCheckBox.checkState() == 2:
-            self.progressBar.reset()
-            self.progressBar.setRange(1, len(self.allShapes))
-            self.statusBar.showMessage('Searching doubleSided shape...')
+            self.initProgressbar(self.allShapes, 'doublesided shape')
             for mesh in self.allShapes:
                 doubleSided = self.cmd.searchOpposite(mesh)
                 self.dataDict[mesh]['doubleSided'] = doubleSided
                 if doubleSided != []:
                     self.badNodeList.append(mesh)
-                value = self.progressBar.value()
-                value += 1
-                self.progressBar.setValue(value)
-                QtCore.QCoreApplication.processEvents()
+                self.incrementProgressbar()
 
         if self.intermediateObjCheckBox.checkState() == 2:
-            self.progressBar.reset()
-            self.progressBar.setRange(1, len(self.allTransforms))
-            self.statusBar.showMessage('Searching intermediate objects...')
+            self.initProgressbar(self.allTransforms, 'intermediate objects')
             for mesh in self.allShapes:
                 intermediateObj = self.cmd.searchIntermediateObj(mesh)
                 self.dataDict[mesh]['intermediateObj'] = intermediateObj
                 if intermediateObj != []:
                     self.badNodeList.append(mesh)
-                value = self.progressBar.value()
-                value += 1
-                self.progressBar.setValue(value)
-                QtCore.QCoreApplication.processEvents()
+                self.incrementProgressbar()
 
         if self.shapeNamesCheckBox.checkState() == 2:
-            self.progressBar.reset()
-            self.progressBar.setRange(1, len(self.allShapes))
-            self.statusBar.showMessage('Searching bad shape names...')
+            self.initProgressbar(self.allShapes, 'bad shape names')
             for mesh in self.allShapes:
                 shapeNames = self.cmd.searchBadShapeName(mesh)
                 self.dataDict[mesh]['shapeNames'] = shapeNames
                 if shapeNames != []:
                     self.badNodeList.append(mesh)
-                value = self.progressBar.value()
-                value += 1
-                self.progressBar.setValue(value)
-                QtCore.QCoreApplication.processEvents()
+                self.incrementProgressbar()
 
         if self.duplicateNamesCheckBox.checkState() == 2:
-            self.progressBar.reset()
-            self.progressBar.setRange(1, len(self.children))
-            self.statusBar.showMessage('Searching duplicate names...')
+            self.initProgressbar(self.children, 'duplicate names')
             duplicateNames = self.cmd.searchDuplicateNames(self.children)
             dupList = []
             for child in self.children:
@@ -524,81 +472,53 @@ class ModelChecker(QtGui.QDialog):
                     self.badNodeList.append(child)
                 else:
                     self.dataDict[child]['duplicateNames'] = []
-                value = self.progressBar.value()
-                value += 1
-                self.progressBar.setValue(value)
-                QtCore.QCoreApplication.processEvents()
+                self.incrementProgressbar()
 
         if self.smoothPreviewCheckBox.checkState() == 2:
-            self.progressBar.reset()
-            self.progressBar.setRange(1, len(self.allShapes))
-            self.statusBar.showMessage('Searching smooth preview mesh...')
+            self.initProgressbar(self.allShapes, 'smooth preview mesh')
             for mesh in self.allShapes:
                 smoothMesh = self.cmd.searchSmoothPreviewed(mesh)
                 self.dataDict[mesh]['smoothPreview'] = smoothMesh
                 if smoothMesh != []:
                     self.badNodeList.append(mesh)
-                value = self.progressBar.value()
-                value += 1
-                self.progressBar.setValue(value)
-                QtCore.QCoreApplication.processEvents()
+                self.incrementProgressbar()
 
         if self.defaultShaderCheckBox.checkState() == 2:
-            self.progressBar.reset()
-            self.progressBar.setRange(1, len(self.allShapes))
-            self.statusBar.showMessage('Searching non default shaders...')
+            self.initProgressbar(self.allShapes, 'non default shaders')
             for mesh in self.allShapes:
                 defaultShader = self.cmd.searchNonDefaultShaders(mesh)
                 self.dataDict[mesh]['defaultShader'] = defaultShader
                 if defaultShader != []:
                     self.badNodeList.append(mesh)
-                value = self.progressBar.value()
-                value += 1
-                self.progressBar.setValue(value)
-                QtCore.QCoreApplication.processEvents()
+                self.incrementProgressbar()
 
         if self.geoSuffixCheckBox.checkState() == 2:
-            self.progressBar.reset()
-            self.progressBar.setRange(1, len(self.children))
-            self.statusBar.showMessage('Searching bad suffix...')
+            self.initProgressbar(self.children, 'bad suffix')
             suffixList = self.suffixList()
             for child in self.children:
                 badSuffixList = self.cmd.searchBadSuffix(child, suffixList)
                 self.dataDict[child]['geoSuffix'] = badSuffixList
                 if badSuffixList != []:
                     self.badNodeList.append(child)
-                value = self.progressBar.value()
-                value += 1
-                self.progressBar.setValue(value)
-                QtCore.QCoreApplication.processEvents()
+                self.incrementProgressbar()
 
         if self.lockedChannelsCheckBox.checkState() == 2:
-            self.progressBar.reset()
-            self.progressBar.setRange(1, len(self.children))
-            self.statusBar.showMessage('Searching locked channels...')
+            self.initProgressbar(self.children, 'locked channel')
             for child in self.children:
                 lockedChannelList = self.cmd.searchLockedChannels(child)
                 self.dataDict[child]['lockedChannels'] = lockedChannelList
                 if lockedChannelList != []:
                     self.badNodeList.append(child)
-                value = self.progressBar.value()
-                value += 1
-                self.progressBar.setValue(value)
-                QtCore.QCoreApplication.processEvents()
+                self.incrementProgressbar()
 
         if self.keyframesCheckBox.checkState() == 2:
-            self.progressBar.reset()
-            self.progressBar.setRange(1, len(self.children))
-            self.statusBar.showMessage('Searching keyframes...')
+            self.initProgressbar(self.children, 'keyframes')
             for child in self.children:
                 keyframeList = self.cmd.searchKeyframes(child)
                 self.dataDict[child]['keyframes'] = keyframeList
                 if keyframeList != []:
                     self.badNodeList.append(child)
-                value = self.progressBar.value()
-                value += 1
-                self.progressBar.setValue(value)
-                QtCore.QCoreApplication.processEvents()
+                self.incrementProgressbar()
 
         # Remove duplicate items and add to list widget
         self.badNodeList = list(set(self.badNodeList))
