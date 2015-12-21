@@ -1,9 +1,10 @@
 from PySide import QtCore, QtGui
-from functools import partial
+from collections import OrderedDict
 import maya.OpenMayaUI as mui
 import maya.cmds as cmds
 import textwrap
-import sys
+import checker
+reload(checker)
 import command
 reload(command)
 import shiboken
@@ -31,13 +32,28 @@ class CustomLabel(QtGui.QLabel):
         super(CustomLabel, self).__init__(parent)
 
     def toRed(self):
-        self.setStyleSheet('background-color: darkred; border-radius: 4px; border-width: 1px; border-color: gray; border-style: solid')
+        self.setStyleSheet("""
+            background-color: darkred;
+            border-radius: 4px;
+            border-width: 1px;
+            border-color: gray;
+            border-style: solid""")
 
     def toGreen(self):
-        self.setStyleSheet( 'background-color: green; border-radius: 4px; border-width: 1px; border-color: gray; border-style: solid')
+        self.setStyleSheet("""
+            background-color: green;
+            border-radius: 4px;
+            border-width: 1px;
+            border-color: gray;
+            border-style: solid""")
 
     def toDefault(self):
-        self.setStyleSheet( 'background-color:; border-radius: 4px; border-width: 1px; border-color: gray; border-style: solid')
+        self.setStyleSheet("""
+            background-color:;
+            border-radius: 4px;
+            border-width: 1px;
+            border-color: gray;
+            border-style: solid""")
 
 
 class ModelChecker(QtGui.QDialog):
@@ -61,26 +77,49 @@ class ModelChecker(QtGui.QDialog):
         self.setWindowTitle('Model Checker')
         self.setWindowFlags(QtCore.Qt.Tool)
 
-        self.checkList = [
-            'history',
-            'transform',
-            'triangles',
-            'nGons',
-            'nonManifoldVtx',
-            'nonManifoldEdges',
-            'laminaFaces',
-            'concaveFaces',
-            'badExtraordinaryVtx',
-            'opposite',
-            'doubleSided',
-            'intermediateObj',
-            'shapeNames',
-            'duplicateNames',
-            'smoothPreview',
-            'defaultShader',
-            'geoSuffix',
-            'lockedChannels',
-            'keyframes']
+        self.functionList = [
+            checker.get_history,
+            checker.get_transform,
+            checker.get_triangles,
+            checker.get_ngons,
+            checker.get_nonmanifold_vertices,
+            checker.get_nonmanifold_edges,
+            checker.get_lamina_faces,
+            checker.get_concave_faces,
+            checker.get_badextraordianry_vtx,
+            checker.get_opposite,
+            checker.get_doublesided,
+            checker.get_intermediate_obj,
+            checker.get_bad_shapenames,
+            checker.get_duplicated_names,
+            checker.get_smooth_mesh,
+            checker.get_shader,
+            checker.get_geo_suffix,
+            checker.get_locked_channels,
+            checker.get_keyframes]
+
+        self.checkListDict = [
+            ('history', True),
+            ('transform', True),
+            ('triangles', True),
+            ('nGons', True),
+            ('nonManifoldVtx', True),
+            ('nonManifoldEdges', True),
+            ('laminaFaces', True),
+            ('concaveFaces', True),
+            ('badExtraordinaryVtx', True),
+            ('opposite', True),
+            ('doubleSided', True),
+            ('intermediateObj', True),
+            ('shapeNames', True),
+            ('duplicateNames', True),
+            ('smoothPreview', True),
+            ('defaultShader', True),
+            ('geoSuffix', True),
+            ('lockedChannels', True),
+            ('keyframes', True)]
+
+        self.checkList = OrderedDict(self.checkListDict)
 
         # Command class setup
         self.cmd = command.Commands(self.checkList)
@@ -97,13 +136,11 @@ class ModelChecker(QtGui.QDialog):
         self.selectBTN = QtGui.QPushButton('Select')
         self.selectBTN.clicked.connect(self.select)
 
-        # Check box widgets
         for i in self.checkList:
             exec("self.%sCheckBox = QtGui.QCheckBox('%s')" % (i, i))
             exec("self.%sCheckBox.setCheckState(QtCore.Qt.Checked)" % i)
-        self.badExtraordinaryVtxCheckBox.setCheckState(QtCore.Qt.Unchecked)
-        self.lockedChannelsCheckBox.setCheckState(QtCore.Qt.Unchecked)
-        self.keyframesCheckBox.setCheckState(QtCore.Qt.Unchecked)
+            if self.checkList[i] is False:
+                exec("self.%sCheckBox.setCheckState(QtCore.Qt.Unchecked)" % i)
         self.geoSuffixLineEdit01 = QtGui.QLineEdit("_GEP")
         self.geoSuffixLineEdit02 = QtGui.QLineEdit("_GES")
         self.geoSuffixLineEdit03 = QtGui.QLineEdit("_NRB")
@@ -137,7 +174,6 @@ class ModelChecker(QtGui.QDialog):
         for i in self.checkList:
             exec("self.%sFixButton = QtGui.QPushButton()" % i)
             exec("self.%sFixButton.setFixedWidth(100)" % i)
-            # exec("self.%sFixButton.setEnabled(False)" % i)
         self.historyFixButton.setText('Delete All')
         self.historyFixButton.clicked.connect(self.cmd.fixHistory)
         self.transformFixButton.setText('Freeze All')
@@ -154,7 +190,8 @@ class ModelChecker(QtGui.QDialog):
         self.doubleSidedFixButton.setText('Fix All')
         self.doubleSidedFixButton.clicked.connect(self.cmd.fixDoubleSided)
         self.intermediateObjFixButton.setText('Delete All')
-        self.intermediateObjFixButton.clicked.connect(self.cmd.fixIntermediateObj)
+        self.intermediateObjFixButton.clicked.connect(
+            self.cmd.fixIntermediateObj)
         self.shapeNamesFixButton.setText('Fix All')
         self.shapeNamesFixButton.clicked.connect(self.cmd.fixShapeNames)
         self.duplicateNamesFixButton.setEnabled(False)
@@ -164,7 +201,8 @@ class ModelChecker(QtGui.QDialog):
         self.defaultShaderFixButton.clicked.connect(self.cmd.fixShader)
         self.geoSuffixFixButton.setEnabled(False)
         self.lockedChannelsFixButton.setText('Unlock All')
-        self.lockedChannelsFixButton.clicked.connect(self.cmd.fixLockedChannels)
+        self.lockedChannelsFixButton.clicked.connect(
+            self.cmd.fixLockedChannels)
         self.keyframesFixButton.setText('Delete All')
         self.keyframesFixButton.clicked.connect(self.cmd.fixKeyframes)
 
@@ -175,7 +213,9 @@ class ModelChecker(QtGui.QDialog):
         self.statusBar = QtGui.QStatusBar()
         self.statusBar.showMessage("")
 
+        # ########################### #
         # #### Layout Management #### #
+        # ########################### #
         topLayout = CustomBoxLayout(QtGui.QBoxLayout.LeftToRight)
         topLayout.addWidget(self.selectedLE)
 
@@ -273,7 +313,7 @@ class ModelChecker(QtGui.QDialog):
         self.geoSuffixLineEdit06.setText("_PLY")
         self.progressBar.reset()
 
-    def suffixList(self):
+    def getSuffixList(self):
         suffix1 = str(self.geoSuffixLineEdit01.text())
         suffix2 = str(self.geoSuffixLineEdit02.text())
         suffix3 = str(self.geoSuffixLineEdit03.text())
@@ -312,7 +352,7 @@ class ModelChecker(QtGui.QDialog):
             exec(textwrap.dedent(ifblock))
 
     def incrementProgressbar(self):
-        # current value 
+        # current value
         value = self.progressBar.value()
 
         # increment
@@ -339,8 +379,27 @@ class ModelChecker(QtGui.QDialog):
             exec("%s.clear()" % c)
 
         # List for adding to badnodelistwidget
-        self.badNodeList = []
+        badNodeList = []
 
+        # Number of checks
+        num = len([i for i in self.checkList if self.checkList[i] is True])
+
+        self.progressBar.reset()
+        self.progressBar.setRange(1, num)
+
+        for name, func in zip(self.checkList, self.functionList):
+            if self.checkList[name] is True:
+                self.statusBar.showMessage('Searching %s...' % name)
+                if name == "geoSuffix":
+                    suffix = self.getSuffixList()
+                    func(self.dataDict, self.allTransforms, badNodeList, suffix)
+                else:
+                    func(self.dataDict, self.allTransforms, badNodeList)
+                self.incrementProgressbar()
+            else:
+                pass
+
+        '''
         if self.historyCheckBox.checkState() == 2:
             self.initProgressbar(self.allShapes, 'history')
             for mesh in self.allShapes:
@@ -520,9 +579,10 @@ class ModelChecker(QtGui.QDialog):
                     self.badNodeList.append(child)
                 self.incrementProgressbar()
 
+        '''
         # Remove duplicate items and add to list widget
-        self.badNodeList = list(set(self.badNodeList))
-        self.badNodeListWidget.addItems(self.badNodeList)
+        badNodeList = list(set(badNodeList))
+        self.badNodeListWidget.addItems(badNodeList)
 
         self.statusBar.showMessage('Searching finished...')
 

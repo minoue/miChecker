@@ -1,0 +1,403 @@
+import maya.OpenMaya as OpenMaya
+import maya.cmds as cmds
+from collections import Counter
+
+
+def extend_to_shape(path):
+
+    slist = OpenMaya.MSelectionList()
+    dagpath = OpenMaya.MDagPath()
+    slist.add(path)
+    slist.getDagPath(0, dagpath)
+    try:
+        dagpath.extendToShape()
+        fullpath = dagpath.fullPathName()
+        return fullpath
+    except RuntimeError:
+        return None
+
+
+def get_history(dataDict, nodeList, badNodeList):
+    for i in nodeList:
+        hist = cmds.listHistory(i)
+        if len(hist) == 1:
+            dataDict[i]['history'] = []
+        else:
+            dataDict[i]['history'] = hist
+            badNodeList.append(i)
+
+
+def get_transform(dataDict, nodeList, badNodeList):
+
+    zeros = [(0.0, 0.0, 0.0)]
+    zeros_s = [(1.0, 1.0, 1.0)]
+
+    for i in nodeList:
+        status = True
+        trans = cmds.getAttr(i + ".translate")
+        if trans != zeros:
+            dataDict[i]['transform'] = [i]
+            badNodeList.append(i)
+            status = False
+
+        rotation = cmds.getAttr(i + ".rotate")
+        if rotation != zeros:
+            dataDict[i]['transform'] = [i]
+            badNodeList.append(i)
+            status = False
+
+        scale = cmds.getAttr(i + ".scale")
+        if scale != zeros_s:
+            dataDict[i]['transform'] = [i]
+            badNodeList.append(i)
+            status = False
+
+        if status is True:
+            dataDict[i]['transform'] = []
+
+
+def get_badextraordianry_vtx(dataDict, nodeList, badNodeList):
+    """ Store a list of badextravtx to the dict """
+
+    slist = OpenMaya.MSelectionList()
+    for i in nodeList:
+        slist.add(i)
+
+    utils = OpenMaya.MScriptUtil()
+    ptr_int = utils.asIntPtr()
+
+    # Change to True if error exists
+    exists = False
+
+    m_dagpath = OpenMaya.MDagPath()
+    for i in range(slist.length()):
+        m_obj = OpenMaya.MObject()
+        slist.getDagPath(i, m_dagpath, m_obj)
+        vlist = []
+        try:
+            iter_verts = OpenMaya.MItMeshVertex(m_dagpath)
+            while not iter_verts.isDone():
+                iter_verts.numConnectedEdges(ptr_int)
+                edge_count = utils.getInt(ptr_int)
+                index = iter_verts.index()
+                if edge_count > 5:
+                    fullpath = m_dagpath.fullPathName() + ".vtx[%s]" % index
+                    vlist.append(fullpath)
+                    exists = True
+                iter_verts.next()
+            if exists is True:
+                badNodeList.append(m_dagpath.fullPathName())
+        except RuntimeError:
+            # If it's not mesh
+            pass
+
+        dataDict[m_dagpath.fullPathName()]['badExtraordinaryVtx'] = vlist
+
+
+def get_triangles(dataDict, nodeList, badNodeList):
+    """ Store a list of triangles to the dict """
+
+    slist = OpenMaya.MSelectionList()
+    for i in nodeList:
+        slist.add(i)
+
+    # Change to True if error exists
+    exists = False
+
+    for i in range(slist.length()):
+        m_dagpath = OpenMaya.MDagPath()
+        m_obj = OpenMaya.MObject()
+        slist.getDagPath(i, m_dagpath, m_obj)
+        edge_list = OpenMaya.MIntArray()
+        flist = []
+        try:
+            iter_faces = OpenMaya.MItMeshPolygon(m_dagpath)
+            while not iter_faces.isDone():
+                iter_faces.getEdges(edge_list)
+                edge_count = edge_list.length()
+                index = iter_faces.index()
+                if edge_count == 3:
+                    fullpath = m_dagpath.fullPathName() + ".f[%s]" % index
+                    flist.append(fullpath)
+                    exists = True
+                iter_faces.next()
+            if exists is True:
+                badNodeList.append(m_dagpath.fullPathName())
+        except RuntimeError:
+            # If it's not mesh
+            pass
+
+        dataDict[m_dagpath.fullPathName()]['triangles'] = flist
+
+
+def get_ngons(dataDict, nodeList, badNodeList):
+    """ Store a list of ngons to the dict """
+
+    slist = OpenMaya.MSelectionList()
+    for i in nodeList:
+        slist.add(i)
+
+    # Change to True if error exists
+    exists = False
+
+    for i in range(slist.length()):
+        m_dagpath = OpenMaya.MDagPath()
+        m_obj = OpenMaya.MObject()
+        slist.getDagPath(i, m_dagpath, m_obj)
+        edge_list = OpenMaya.MIntArray()
+        flist = []
+        try:
+            iter_faces = OpenMaya.MItMeshPolygon(m_dagpath)
+            while not iter_faces.isDone():
+                iter_faces.getEdges(edge_list)
+                edge_count = edge_list.length()
+                index = iter_faces.index()
+                if edge_count >= 5:
+                    fullpath = m_dagpath.fullPathName() + ".f[%s]" % index
+                    flist.append(fullpath)
+                    exists = True
+                iter_faces.next()
+            if exists is True:
+                badNodeList.append(m_dagpath.fullPathName())
+        except RuntimeError:
+            # If it's not mesh
+            pass
+
+        dataDict[m_dagpath.fullPathName()]['nGons'] = flist
+
+
+def get_lamina_faces(dataDict, nodeList, badNodeList):
+    """ Store a list of lamina faces to the dict """
+
+    slist = OpenMaya.MSelectionList()
+    for i in nodeList:
+        slist.add(i)
+
+    # Change to True if error exists
+    exists = False
+
+    for i in range(slist.length()):
+        m_dagpath = OpenMaya.MDagPath()
+        m_obj = OpenMaya.MObject()
+        slist.getDagPath(i, m_dagpath, m_obj)
+        flist = []
+        try:
+            iter_faces = OpenMaya.MItMeshPolygon(m_dagpath)
+            while not iter_faces.isDone():
+                lamina_checker = iter_faces.isLamina()
+                index = iter_faces.index()
+                if lamina_checker is True:
+                    fullpath = m_dagpath.fullPathName() + ".f[%s]" % index
+                    flist.append(fullpath)
+                    exists = True
+                iter_faces.next()
+            if exists is True:
+                badNodeList.append(m_dagpath.fullPathName())
+        except RuntimeError:
+            # If it's not mesh
+            pass
+
+        dataDict[m_dagpath.fullPathName()]['laminaFaces'] = flist
+
+
+def get_concave_faces(dataDict, nodeList, badNodeList):
+    """ Store a list of lamina faces to the dict """
+
+    slist = OpenMaya.MSelectionList()
+    for i in nodeList:
+        slist.add(i)
+
+    # Change to True if error exists
+    exists = False
+
+    for i in range(slist.length()):
+        m_dagpath = OpenMaya.MDagPath()
+        m_obj = OpenMaya.MObject()
+        slist.getDagPath(i, m_dagpath, m_obj)
+        flist = []
+        try:
+            iter_faces = OpenMaya.MItMeshPolygon(m_dagpath)
+            while not iter_faces.isDone():
+                convex_checker = iter_faces.isConvex()
+                index = iter_faces.index()
+                if convex_checker is False:
+                    fullpath = m_dagpath.fullPathName() + ".f[%s]" % index
+                    flist.append(fullpath)
+                    exists = True
+                iter_faces.next()
+            if exists is True:
+                badNodeList.append(m_dagpath.fullPathName())
+        except RuntimeError:
+            # If it's not mesh
+            pass
+
+        dataDict[m_dagpath.fullPathName()]['concaveFaces'] = flist
+
+
+def get_nonmanifold_vertices(dataDict, nodeList, badNodeList):
+    """ Store a list of non manifold vertices. """
+
+    for i in nodeList:
+        verts = cmds.polyInfo(i, nonManifoldVertices=True)
+        dataDict[i]['nonManifoldVtx'] = verts
+
+        if verts is not None:
+            badNodeList.append(i)
+
+        dataDict[i]['nonManifoldVtx'] = []
+
+
+def get_nonmanifold_edges(dataDict, nodeList, badNodeList):
+    """ Store a list of non manifold edges. """
+
+    for i in nodeList:
+        edges = cmds.polyInfo(i, nonManifoldEdges=True)
+        dataDict[i]['nonManifoldEdges'] = edges
+
+        if edges is not None:
+            badNodeList.append(i)
+
+        dataDict[i]['nonManifoldEdges'] = []
+
+
+def get_opposite(dataDict, nodeList, badNodeList):
+
+    for i in nodeList:
+        shape = extend_to_shape(i)
+        if shape is None:
+            return
+        else:
+            oppositeStatus = cmds.getAttr(i + ".opposite")
+            if oppositeStatus is True:
+                dataDict[i]['opposite'] = [i]
+                badNodeList.append(i)
+            else:
+                dataDict[i]['opposite'] = []
+
+
+def get_doublesided(dataDict, nodeList, badNodeList):
+
+    for i in nodeList:
+        shape = extend_to_shape(i)
+        if shape is None:
+            return
+        else:
+            oppositeStatus = cmds.getAttr(i + ".doubleSided")
+            if oppositeStatus is True:
+                dataDict[i]['doubleSided'] = [i]
+                badNodeList.append(i)
+            else:
+                dataDict[i]['doubleSided'] = []
+
+
+def get_intermediate_obj(dataDict, nodeList, badNodeList):
+
+    for i in nodeList:
+        shape = extend_to_shape(i)
+        if shape is None:
+            return
+        else:
+            oppositeStatus = cmds.getAttr(i + ".intermediateObject")
+            if oppositeStatus is True:
+                dataDict[i]['intermediateObject'] = [i]
+                badNodeList.append(i)
+            else:
+                dataDict[i]['intermediateObject'] = []
+
+
+def get_bad_shapenames(dataDict, nodeList, badNodeList):
+
+    for i in nodeList:
+        shape = extend_to_shape(i)
+        if shape == i + "Shape":
+            dataDict[i]['shapeNames'] = []
+        else:
+            dataDict[i]['shapeNames'] = [i]
+            badNodeList.append(i)
+
+
+def get_duplicated_names(dataDict, nodeList, badNodeList):
+    # itemName = [i.split("|")[-1] for i in nodeList]
+    # collection = Counter(itemName)
+    # duplicateNamesList = [i for i in collection if collection[i] > 1]
+    pass
+
+
+def get_smooth_mesh(dataDict, nodeList, badNodeList):
+
+    for i in nodeList:
+        shape = extend_to_shape(i)
+        if shape is None:
+            pass
+        else:
+            smoothMesh = cmds.getAttr(i + ".displaySmoothMesh")
+            if smoothMesh == 1:
+                dataDict[i]['smoothPreview'] = [i]
+                badNodeList.append(i)
+            elif smoothMesh == 2:
+                dataDict[i]['smoothPreview'] = [i]
+                badNodeList.append(i)
+            else:
+                dataDict[i]['smoothPreview'] = []
+
+
+def get_shader(dataDict, nodeList, badNodeList):
+    for i in nodeList:
+        shape = extend_to_shape(i)
+        if shape is None:
+            pass
+        else:
+            try:
+                sg = cmds.listConnections(shape, type='shadingEngine')[0]
+                if sg == 'initialShadingGroup':
+                    dataDict[i]['defaultShader'] = []
+                else:
+                    dataDict[i]['defaultShader'] = [sg]
+                    badNodeList.append(i)
+            except TypeError:
+                # INTERMEDIATE OBJECT CAN'T GET SHADINIG GROUP
+                # NEED TO REMOVE INTERMEDIATE OBJECT FIRST
+                pass
+
+
+def get_geo_suffix(dataDict, nodeList, badNodeList, suffix):
+
+    for i in nodeList:
+        currentSuffix = "_" + i.split("_")[-1]
+        if currentSuffix in suffix:
+            pass
+        else:
+            dataDict[i]['geoSuffix'] = [i]
+            badNodeList.append(i)
+
+
+def get_locked_channels(dataDict, nodeList, badNodeList):
+    for i in nodeList:
+        attrs = cmds.listAttr(i)
+        for att in attrs:
+            try:
+                lockState = cmds.getAttr(i + "." + att, lock=True)
+                if lockState is True:
+                    dataDict[i]['lockedChannels'] = [i]
+                    badNodeList.append(i)
+                    return
+                else:
+                    pass
+            except ValueError:
+                pass
+
+
+def get_keyframes(dataDict, nodeList, badNodeList):
+    for i in nodeList:
+        attrs = cmds.listAttr(i)
+        for att in attrs:
+            try:
+                keyState = cmds.keyframe(i + "." + att, q=True)
+                if keyState is None:
+                    pass
+                else:
+                    dataDict[i]['keyframes'] = [i]
+                    badNodeList.append(i)
+                    return
+            except ValueError:
+                pass
