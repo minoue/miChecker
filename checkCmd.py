@@ -48,9 +48,10 @@ def get_transform(dataDict, nodeList, badNodeList, *args):
         trans = cmds.getAttr(i + ".translate")
         rotation = cmds.getAttr(i + ".rotate")
         scale = cmds.getAttr(i + ".scale")
-        if trans == zeros and rotation == zeros and scale == zeros_s:
+        if (trans == zeros and rotation == zeros and scale == zeros_s):
             dataDict[i]['transform'] = []
         else:
+            dataDict[i]['transform'] = [i]
             badNodeList.append(i)
 
 
@@ -243,7 +244,7 @@ def get_opposite(dataDict, nodeList, badNodeList, *args):
     for i in nodeList:
         shape = extend_to_shape(i)
         if shape is None:
-            return
+            continue
         else:
             oppositeStatus = cmds.getAttr(i + ".opposite")
             if oppositeStatus is True:
@@ -258,14 +259,14 @@ def get_doublesided(dataDict, nodeList, badNodeList, *args):
     for i in nodeList:
         shape = extend_to_shape(i)
         if shape is None:
-            return
+            continue
         else:
             oppositeStatus = cmds.getAttr(i + ".doubleSided")
             if oppositeStatus is True:
+                dataDict[i]['doubleSided'] = []
+            else:
                 dataDict[i]['doubleSided'] = [i]
                 badNodeList.append(i)
-            else:
-                dataDict[i]['doubleSided'] = []
 
 
 def get_intermediate_obj(dataDict, nodeList, badNodeList, *args):
@@ -273,7 +274,7 @@ def get_intermediate_obj(dataDict, nodeList, badNodeList, *args):
     for i in nodeList:
         shape = extend_to_shape(i)
         if shape is None:
-            return
+            continue
         else:
             oppositeStatus = cmds.getAttr(i + ".intermediateObject")
             if oppositeStatus is True:

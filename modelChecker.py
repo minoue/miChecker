@@ -3,11 +3,13 @@ from collections import OrderedDict
 import maya.OpenMayaUI as mui
 import maya.cmds as cmds
 import textwrap
-import checker
-reload(checker)
+import checkCmd
+reload(checkCmd)
 import command
 reload(command)
 import shiboken
+import fixCmd as fix
+reload(fix)
 
 
 def getMayaWindow():
@@ -78,25 +80,25 @@ class ModelChecker(QtGui.QDialog):
         self.setWindowFlags(QtCore.Qt.Tool)
 
         self.functionList = [
-            checker.get_history,
-            checker.get_transform,
-            checker.get_triangles,
-            checker.get_ngons,
-            checker.get_nonmanifold_vertices,
-            checker.get_nonmanifold_edges,
-            checker.get_lamina_faces,
-            checker.get_concave_faces,
-            checker.get_badextraordianry_vtx,
-            checker.get_opposite,
-            checker.get_doublesided,
-            checker.get_intermediate_obj,
-            checker.get_bad_shapenames,
-            checker.get_duplicated_names,
-            checker.get_smooth_mesh,
-            checker.get_shader,
-            checker.get_geo_suffix,
-            checker.get_locked_channels,
-            checker.get_keyframes]
+            checkCmd.get_history,
+            checkCmd.get_transform,
+            checkCmd.get_triangles,
+            checkCmd.get_ngons,
+            checkCmd.get_nonmanifold_vertices,
+            checkCmd.get_nonmanifold_edges,
+            checkCmd.get_lamina_faces,
+            checkCmd.get_concave_faces,
+            checkCmd.get_badextraordianry_vtx,
+            checkCmd.get_opposite,
+            checkCmd.get_doublesided,
+            checkCmd.get_intermediate_obj,
+            checkCmd.get_bad_shapenames,
+            checkCmd.get_duplicated_names,
+            checkCmd.get_smooth_mesh,
+            checkCmd.get_shader,
+            checkCmd.get_geo_suffix,
+            checkCmd.get_locked_channels,
+            checkCmd.get_keyframes]
 
         self.checkListDict = [
             ('history', True),
@@ -123,6 +125,9 @@ class ModelChecker(QtGui.QDialog):
 
         # Command class setup
         self.cmd = command.Commands(self.checkList)
+
+        # Create bad node list var to store path to error nodes.
+        self.badNodeList = []
 
         # Create GUI
         self.createUI()
@@ -173,9 +178,9 @@ class ModelChecker(QtGui.QDialog):
 
         # fix button widgets
         self.historyFixButton.setText('Delete All')
-        self.historyFixButton.clicked.connect(self.cmd.fixHistory)
-        self.transformFixButton.setText('Freeze All')
-        self.transformFixButton.clicked.connect(self.cmd.fixTransform)
+        self.historyFixButton.clicked.connect(self.fix_history)
+        self.transformFixButton.setText('Feeeze All')
+        self.transformFixButton.clicked.connect(self.fix_transform)
         self.trianglesFixButton.setEnabled(False)
         self.nGonsFixButton.setEnabled(False)
         self.nonManifoldVtxFixButton.setEnabled(False)
@@ -184,25 +189,23 @@ class ModelChecker(QtGui.QDialog):
         self.concaveFacesFixButton.setEnabled(False)
         self.badExtraordinaryVtxFixButton.setEnabled(False)
         self.oppositeFixButton.setText('Fix All')
-        self.oppositeFixButton.clicked.connect(self.cmd.fixOpposite)
+        self.oppositeFixButton.clicked.connect(self.fix_opposite)
         self.doubleSidedFixButton.setText('Fix All')
-        self.doubleSidedFixButton.clicked.connect(self.cmd.fixDoubleSided)
+        self.doubleSidedFixButton.clicked.connect(self.fix_doublesided)
         self.intermediateObjFixButton.setText('Delete All')
-        self.intermediateObjFixButton.clicked.connect(
-            self.cmd.fixIntermediateObj)
+        self.intermediateObjFixButton.clicked.connect(self.fix_intermediate_obj)
         self.shapeNamesFixButton.setText('Fix All')
-        self.shapeNamesFixButton.clicked.connect(self.cmd.fixShapeNames)
+        self.shapeNamesFixButton.clicked.connect(self.fix_shape_names)
         self.duplicateNamesFixButton.setEnabled(False)
         self.smoothPreviewFixButton.setText('Fix All')
-        self.smoothPreviewFixButton.clicked.connect(self.cmd.fixSmoothPreview)
+        self.smoothPreviewFixButton.clicked.connect(self.fix_smooth_preview)
         self.defaultShaderFixButton.setText('Set Lambert1')
-        self.defaultShaderFixButton.clicked.connect(self.cmd.fixShader)
+        self.defaultShaderFixButton.clicked.connect(self.fix_shader)
         self.geoSuffixFixButton.setEnabled(False)
         self.lockedChannelsFixButton.setText('Unlock All')
-        self.lockedChannelsFixButton.clicked.connect(
-            self.cmd.fixLockedChannels)
+        self.lockedChannelsFixButton.clicked.connect(self.fix_locked_channels)
         self.keyframesFixButton.setText('Delete All')
-        self.keyframesFixButton.clicked.connect(self.cmd.fixKeyframes)
+        self.keyframesFixButton.clicked.connect(self.fix_keyframes)
 
         # progress bar
         self.progressBar = QtGui.QProgressBar()
@@ -259,18 +262,18 @@ class ModelChecker(QtGui.QDialog):
     def initData(self):
 
         sel = self.selectedLE.text()
-        self.children = cmds.listRelatives(
+        self.allDagnodes = cmds.listRelatives(
             sel,
             ad=True,
             fullPath=True,
             type="transform")
 
-        if self.children is None:
-            self.children = []
-        self.children.append(sel)
+        if self.allDagnodes is None:
+            self.allDagnodes = []
+        self.allDagnodes.append(sel)
 
         self.dataDict = {}
-        for item in self.children:
+        for item in self.allDagnodes:
             self.dataDict[item] = {}
             for check in self.checkList:
                 self.dataDict[item][check] = []
@@ -345,7 +348,7 @@ class ModelChecker(QtGui.QDialog):
 
         for i in self.checkList:
             ifblock = """\
-            %sResult = [self.dataDict[child]['%s'] for child in self.children]\n
+            %sResult = [self.dataDict[child]['%s'] for child in self.allDagnodes]\n
             if self.%sCheckBox.checkState() == 2:
                 if %sResult.count([]) == len(%sResult):\n
                     self.%sResultLabel.toGreen()\n
@@ -387,7 +390,7 @@ class ModelChecker(QtGui.QDialog):
         self.badNodeListWidget.clear()
 
         # List for adding to badnodelistwidget
-        badNodeList = []
+        self.badNodeList = []
 
         # Number of checks
         num = len([i for i in self.checkList if self.checkList[i] is True])
@@ -399,16 +402,46 @@ class ModelChecker(QtGui.QDialog):
             if self.checkList[name] is True:
                 self.statusBar.showMessage('Searching %s...' % name)
                 suffix = self.getSuffixList()
-                func(self.dataDict, self.children, badNodeList, suffix)
+                func(self.dataDict, self.allDagnodes, self.badNodeList, suffix)
                 self.incrementProgressbar()
 
         # Remove duplicate items and add to list widget
-        badNodeList = list(set(badNodeList))
-        self.badNodeListWidget.addItems(badNodeList)
+        self.badNodeList = list(set(self.badNodeList))
+        self.badNodeListWidget.addItems(self.badNodeList)
 
         self.statusBar.showMessage('Searching finished...')
 
         self.changeLabelColorbyResult()
+
+    def fix_history(self):
+        fix.delete_history(self.badNodeList)
+
+    def fix_transform(self):
+        fix.freeze_transform(self.badNodeList)
+
+    def fix_opposite(self):
+        fix.fix_opposite(self.badNodeList)
+
+    def fix_doublesided(self):
+        fix.fix_doublesided(self.badNodeList)
+
+    def fix_intermediate_obj(self):
+        fix.delete_intermediate_obj(self.badNodeList)
+
+    def fix_shape_names(self):
+        fix.fix_shape_names(self.badNodeList)
+
+    def fix_smooth_preview(self):
+        fix.fix_smooth_preview(self.badNodeList)
+
+    def fix_shader(self):
+        fix.assign_default_shader(self.badNodeList)
+
+    def fix_locked_channels(self):
+        fix.unlock_channels(self.badNodeList)
+
+    def fix_keyframes(self):
+        fix.delete_keyframes(self.badNodeList)
 
 
 def main():
