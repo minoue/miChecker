@@ -100,6 +100,7 @@ class ModelChecker(QtGui.QDialog):
             checkCmd.get_locked_channels,
             checkCmd.get_keyframes]
 
+        # Default check state
         self.checkListDict = [
             ('history', True),
             ('transform', True),
@@ -118,8 +119,8 @@ class ModelChecker(QtGui.QDialog):
             ('smoothPreview', True),
             ('defaultShader', True),
             ('geoSuffix', True),
-            ('lockedChannels', True),
-            ('keyframes', True)]
+            ('lockedChannels', False),
+            ('keyframes', False)]
 
         self.checkList = OrderedDict(self.checkListDict)
 
@@ -143,8 +144,15 @@ class ModelChecker(QtGui.QDialog):
         self.selectBTN.clicked.connect(self.select)
 
         for i in self.checkList:
+            # Create checkbox
             exec("self.%sCheckBox = QtGui.QCheckBox('%s')" % (i, i))
+
+            # Set checkstate and name object to save check state
             exec("self.%sCheckBox.setCheckState(QtCore.Qt.Checked)" % i)
+            exec("self.%sCheckBox.setObjectName('%sCheckBox')" % (i, i))
+            exec("self.%sCheckBox.stateChanged.connect(self.toggleCheckState)" % i)
+
+            # Chnage chack state base on current state
             if self.checkList[i] is False:
                 exec("self.%sCheckBox.setCheckState(QtCore.Qt.Unchecked)" % i)
 
@@ -281,6 +289,19 @@ class ModelChecker(QtGui.QDialog):
     def select(self):
         sel = cmds.ls(sl=True, fl=True, long=True)[0]
         self.selectedLE.setText(sel)
+
+    def toggleCheckState(self):
+        currentState = self.sender().checkState()
+        checkBox = self.sender().objectName()
+        checkItem = checkBox.split("CheckBox")[0]
+        if currentState == QtCore.Qt.CheckState.Unchecked:
+            state = False
+        elif currentState == QtCore.Qt.CheckState.Checked:
+            state = True
+        else:
+            pass
+
+        self.checkList[checkItem] = state
 
     def itemClicked(self, index):
         if index is None:
