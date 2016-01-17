@@ -1,61 +1,22 @@
 from PySide import QtCore, QtGui
 from collections import OrderedDict
+from gui import widget
+reload(widget)
+from cmd import checkCmd
+reload(checkCmd)
+from cmd import fixCmd
+reload(fixCmd)
 import maya.OpenMayaUI as mui
 import maya.cmds as cmds
 import textwrap
-import checkCmd
-reload(checkCmd)
-import command
-reload(command)
+# import checkCmd
+# reload(checkCmd)
 import shiboken
-import fixCmd as fix
-reload(fix)
 
 
 def getMayaWindow():
     ptr = mui.MQtUtil.mainWindow()
     return shiboken.wrapInstance(long(ptr), QtGui.QMainWindow)
-
-
-class CustomBoxLayout(QtGui.QBoxLayout):
-    """ Custom layout with less spacing between widgets """
-
-    def __init__(self, parent=None):
-        super(CustomBoxLayout, self).__init__(parent)
-
-        self.setSpacing(2)
-        self.setContentsMargins(2, 2, 2, 2)
-
-
-class CustomLabel(QtGui.QLabel):
-    """ Custom QLabel to show green/red color """
-
-    def __init__(self, parent=None):
-        super(CustomLabel, self).__init__(parent)
-
-    def toRed(self):
-        self.setStyleSheet("""
-            background-color: darkred;
-            border-radius: 4px;
-            border-width: 1px;
-            border-color: gray;
-            border-style: solid""")
-
-    def toGreen(self):
-        self.setStyleSheet("""
-            background-color: green;
-            border-radius: 4px;
-            border-width: 1px;
-            border-color: gray;
-            border-style: solid""")
-
-    def toDefault(self):
-        self.setStyleSheet("""
-            background-color:;
-            border-radius: 4px;
-            border-width: 1px;
-            border-color: gray;
-            border-style: solid""")
 
 
 class ModelChecker(QtGui.QDialog):
@@ -124,9 +85,6 @@ class ModelChecker(QtGui.QDialog):
 
         self.checkList = OrderedDict(self.checkListDict)
 
-        # Command class setup
-        self.cmd = command.Commands(self.checkList)
-
         # Create bad node list var to store path to error nodes.
         self.badNodeList = []
 
@@ -150,21 +108,36 @@ class ModelChecker(QtGui.QDialog):
             # Set checkstate and name object to save check state
             exec("self.%sCheckBox.setCheckState(QtCore.Qt.Checked)" % i)
             exec("self.%sCheckBox.setObjectName('%sCheckBox')" % (i, i))
-            exec("self.%sCheckBox.stateChanged.connect(self.toggleCheckState)" % i)
+            exec(
+                "self.%sCheckBox.stateChanged.connect(self.toggleCheckState)"
+                % i)
 
             # Chnage chack state base on current state
             if self.checkList[i] is False:
                 exec("self.%sCheckBox.setCheckState(QtCore.Qt.Unchecked)" % i)
 
             exec("self.%sListWidget = QtGui.QListWidget()" % i)
-            exec("self.%sListWidget.currentItemChanged.connect(self.errorClicked)" % i)
-            exec("self.%sListWidget.itemClicked.connect(self.errorClicked)" % i)
-            exec("self.%sListWidget.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)" % i)
+            exec(
+                ("self.%sListWidget.currentItemChanged"
+                 ".connect(self.errorClicked)" % i)
+                )
+            exec(
+                "self.%sListWidget.itemClicked"
+                ".connect(self.errorClicked)" % i)
+            exec(
+                "self.%sListWidget.setSelectionMode"
+                "(QtGui.QAbstractItemView.ExtendedSelection)" % i)
 
-            exec("self.%sResultLabel = CustomLabel('%s')" % (i, i))
+            exec("self.%sResultLabel = widget.CustomLabel('%s')" % (i, i))
 
             exec("self.%sFixButton = QtGui.QPushButton()" % i)
             exec("self.%sFixButton.setFixedWidth(100)" % i)
+
+        self.presetCB = QtGui.QComboBox()
+        self.presetCB.addItem("All")
+        self.presetCB.addItem("Topology")
+        self.presetCB.addItem("Mesh")
+        self.presetCB.currentIndexChanged.connect(self.changePreset)
 
         self.geoSuffixLineEdit01 = QtGui.QLineEdit("_GEP")
         self.geoSuffixLineEdit02 = QtGui.QLineEdit("_GES")
@@ -201,7 +174,8 @@ class ModelChecker(QtGui.QDialog):
         self.doubleSidedFixButton.setText('Fix All')
         self.doubleSidedFixButton.clicked.connect(self.fix_doublesided)
         self.intermediateObjFixButton.setText('Delete All')
-        self.intermediateObjFixButton.clicked.connect(self.fix_intermediate_obj)
+        self.intermediateObjFixButton.clicked.connect(
+            self.fix_intermediate_obj)
         self.shapeNamesFixButton.setText('Fix All')
         self.shapeNamesFixButton.clicked.connect(self.fix_shape_names)
         self.duplicateNamesFixButton.setEnabled(False)
@@ -223,12 +197,14 @@ class ModelChecker(QtGui.QDialog):
         self.statusBar.showMessage("")
 
     def layoutUI(self):
-        topLayout = CustomBoxLayout(QtGui.QBoxLayout.LeftToRight)
+        # Layout for the selected object.
+        topLayout = widget.CustomBoxLayout(QtGui.QBoxLayout.LeftToRight)
         topLayout.addWidget(self.selectedLE)
 
-        midLayout = CustomBoxLayout(QtGui.QBoxLayout.LeftToRight)
+        midLayout = widget.CustomBoxLayout(QtGui.QBoxLayout.LeftToRight)
 
-        checkBoxLayout = CustomBoxLayout(QtGui.QBoxLayout.TopToBottom)
+        checkBoxLayout = widget.CustomBoxLayout(QtGui.QBoxLayout.TopToBottom)
+        checkBoxLayout.addWidget(self.presetCB)
         for i in self.checkList:
             exec("checkBoxLayout.addWidget(self.%sCheckBox)" % i)
         for num in range(6):
@@ -244,10 +220,10 @@ class ModelChecker(QtGui.QDialog):
             errorListLayout.addWidget(QtGui.QLabel(i))
             exec("errorListLayout.addWidget(self.%sListWidget)" % i)
 
-        rightLayout = CustomBoxLayout(QtGui.QBoxLayout.TopToBottom)
+        rightLayout = widget.CustomBoxLayout(QtGui.QBoxLayout.TopToBottom)
         rightLayout.addWidget(self.searchButton)
         for i in self.checkList:
-            subLayout = CustomBoxLayout(QtGui.QBoxLayout.LeftToRight)
+            subLayout = widget.CustomBoxLayout(QtGui.QBoxLayout.LeftToRight)
             exec("subLayout.addWidget(self.%sResultLabel)" % i)
             exec("subLayout.addWidget(self.%sFixButton)" % i)
             exec("rightLayout.addLayout(subLayout)")
@@ -259,7 +235,7 @@ class ModelChecker(QtGui.QDialog):
 
         topLayout.addWidget(self.selectBTN)
 
-        mainLayout = CustomBoxLayout(QtGui.QBoxLayout.TopToBottom)
+        mainLayout = widget.CustomBoxLayout(QtGui.QBoxLayout.TopToBottom)
         mainLayout.addLayout(topLayout)
         mainLayout.addLayout(midLayout)
         mainLayout.addWidget(self.progressBar)
@@ -435,34 +411,70 @@ class ModelChecker(QtGui.QDialog):
         self.changeLabelColorbyResult()
 
     def fix_history(self):
-        fix.delete_history(self.badNodeList)
+        fixCmd.delete_history(self.badNodeList)
 
     def fix_transform(self):
-        fix.freeze_transform(self.badNodeList)
+        fixCmd.freeze_transform(self.badNodeList)
 
     def fix_opposite(self):
-        fix.fix_opposite(self.badNodeList)
+        fixCmd.fix_opposite(self.badNodeList)
 
     def fix_doublesided(self):
-        fix.fix_doublesided(self.badNodeList)
+        fixCmd.fix_doublesided(self.badNodeList)
 
     def fix_intermediate_obj(self):
-        fix.delete_intermediate_obj(self.badNodeList)
+        fixCmd.delete_intermediate_obj(self.badNodeList)
 
     def fix_shape_names(self):
-        fix.fix_shape_names(self.badNodeList)
+        fixCmd.fix_shape_names(self.badNodeList)
 
     def fix_smooth_preview(self):
-        fix.fix_smooth_preview(self.badNodeList)
+        fixCmd.fix_smooth_preview(self.badNodeList)
 
     def fix_shader(self):
-        fix.assign_default_shader(self.badNodeList)
+        fixCmd.assign_default_shader(self.badNodeList)
 
     def fix_locked_channels(self):
-        fix.unlock_channels(self.badNodeList)
+        fixCmd.unlock_channels(self.badNodeList)
 
     def fix_keyframes(self):
-        fix.delete_keyframes(self.badNodeList)
+        fixCmd.delete_keyframes(self.badNodeList)
+
+    def checkAll(self, status):
+        if status is True:
+            for i in self.checkList:
+                exec("self.%sCheckBox.setCheckState(QtCore.Qt.Checked)" % i)
+        elif status is False:
+            for i in self.checkList:
+                exec("self.%sCheckBox.setCheckState(QtCore.Qt.Unchecked)" % i)
+        else:
+            pass
+
+    def changePreset(self, *args):
+        idx = args[0]
+
+        if idx == 0:
+            self.checkAll(True)
+        elif idx == 1:
+            self.checkAll(False)
+            self.trianglesCheckBox.setCheckState(QtCore.Qt.Checked)
+            self.nGonsCheckBox.setCheckState(QtCore.Qt.Checked)
+            self.nonManifoldVtxCheckBox.setCheckState(QtCore.Qt.Checked)
+            self.nonManifoldEdgesCheckBox.setCheckState(QtCore.Qt.Checked)
+            self.laminaFacesCheckBox.setCheckState(QtCore.Qt.Checked)
+            self.concaveFacesCheckBox.setCheckState(QtCore.Qt.Checked)
+            self.badExtraordinaryVtxCheckBox.setCheckState(QtCore.Qt.Checked)
+        elif idx == 2:
+            self.checkAll(True)
+            self.trianglesCheckBox.setCheckState(QtCore.Qt.Unchecked)
+            self.nGonsCheckBox.setCheckState(QtCore.Qt.Unchecked)
+            self.nonManifoldVtxCheckBox.setCheckState(QtCore.Qt.Unchecked)
+            self.nonManifoldEdgesCheckBox.setCheckState(QtCore.Qt.Unchecked)
+            self.laminaFacesCheckBox.setCheckState(QtCore.Qt.Unchecked)
+            self.concaveFacesCheckBox.setCheckState(QtCore.Qt.Unchecked)
+            self.badExtraordinaryVtxCheckBox.setCheckState(QtCore.Qt.Unchecked)
+        else:
+            pass
 
 
 def main():
