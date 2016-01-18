@@ -1,16 +1,11 @@
 from PySide import QtCore, QtGui
 from collections import OrderedDict
 from gui import widget
-reload(widget)
 from cmd import checkCmd
-reload(checkCmd)
 from cmd import fixCmd
-reload(fixCmd)
 import maya.OpenMayaUI as mui
 import maya.cmds as cmds
 import textwrap
-# import checkCmd
-# reload(checkCmd)
 import shiboken
 
 
@@ -228,16 +223,22 @@ class ModelChecker(QtGui.QDialog):
             exec("subLayout.addWidget(self.%sFixButton)" % i)
             exec("rightLayout.addLayout(subLayout)")
 
-        midLayout.addLayout(checkBoxLayout)
-        midLayout.addWidget(self.badNodeListWidget)
-        midLayout.addWidget(scrollArea)
-        midLayout.addLayout(rightLayout)
+        # Set splitter
+        midSplitter = QtGui.QSplitter()
+        midWidgetA = QtGui.QWidget()
+        midWidgetB = QtGui.QWidget()
+        midWidgetA.setLayout(checkBoxLayout)
+        midWidgetB.setLayout(rightLayout)
+        midSplitter.addWidget(midWidgetA)
+        midSplitter.addWidget(self.badNodeListWidget)
+        midSplitter.addWidget(scrollArea)
+        midSplitter.addWidget(midWidgetB)
 
         topLayout.addWidget(self.selectBTN)
 
         mainLayout = widget.CustomBoxLayout(QtGui.QBoxLayout.TopToBottom)
         mainLayout.addLayout(topLayout)
-        mainLayout.addLayout(midLayout)
+        mainLayout.addWidget(midSplitter)
         mainLayout.addWidget(self.progressBar)
         mainLayout.addWidget(self.statusBar)
 
@@ -477,7 +478,7 @@ class ModelChecker(QtGui.QDialog):
             pass
 
 
-def main():
+def main(d):
     global checkerWin
     try:
         checkerWin.close()
@@ -491,9 +492,26 @@ def main():
         sel = sel[0]
 
     checkerWin = ModelChecker(sel)
-    checkerWin.show()
-    checkerWin.raise_()
+    checkerWin.setObjectName("checker_mainWindow")
 
+    if d is True:
+        from pymel import all as pm
 
-if __name__ == '__main__':
-    main()
+        if pm.dockControl('model_checker_dock', q=True, ex=1):
+            pm.deleteUI('model_checker_dock')
+
+        floatingLayout = pm.paneLayout(configuration='single', w=1000)
+
+        pm.dockControl(
+            'model_checker_dock',
+            aa=['right', 'left'],
+            a='right',
+            fl=False,
+            con=floatingLayout,
+            label="Model Checker",
+            w=300)
+
+        pm.control('checker_mainWindow', e=True, parent=floatingLayout)
+    else:
+        checkerWin.show()
+        checkerWin.raise_()
