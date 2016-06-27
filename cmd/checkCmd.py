@@ -1,5 +1,44 @@
 import maya.OpenMaya as OpenMaya
 import maya.cmds as cmds
+from collections import Counter
+
+
+# DataDict structure (dict)
+# Key : fullpath of each node
+# item : dict of errors:
+#        key : name of error
+#        item : list of components
+#
+# For example,
+# {u'|group3|group1|pSphere1':
+#     {'laminaFaces': [],
+#      'smoothPreview': [],
+#      'intermediateObject': [],
+#      'nonManifoldEdges': [],
+#      'opposite': [],
+#      'shapeNames': [u'|group3|group1|pSphere1'],
+#      'lockedChannels': [],
+#      'duplicateNames': [],
+#      'transform': [u'|group3|group1|pSphere1'],
+#      'keyframes': [],
+#      'defaultShader': [],
+#      'nGons': [],
+#      'intermediateObj': [],
+#      'concaveFaces': [],
+#      'doubleSided': [],
+#      'geoSuffix': [],
+#      'history':[u'group1|pSphere1|pSphereShape1', u'polySphere1'],
+#      'badExtraordinaryVtx': []],
+#      'triangles': []],
+#      'nonManifoldVtx': []},
+#  u'|group3|group1|pSphere2':
+#     {'laminaFaces': [],
+#      'smoothPreview': [],
+#      'intermediateObject': [],
+#      ...
+
+
+# nodeList : List of all shape and transform nodes
 
 
 def extend_to_shape(path):
@@ -302,10 +341,13 @@ def get_bad_shapenames(dataDict, nodeList, badNodeList, *args):
 
 
 def get_duplicated_names(dataDict, nodeList, badNodeList, *args):
-    # itemName = [i.split("|")[-1] for i in nodeList]
-    # collection = Counter(itemName)
-    # duplicateNamesList = [i for i in collection if collection[i] > 1]
-    pass
+    shortNames = [i.split("|")[-1] for i in nodeList]
+    collection = Counter(shortNames)
+    duplicateNamesList = [i for i in collection if collection[i] > 1]
+
+    for i in nodeList:
+        dataDict[i]['duplicateNames'] = duplicateNamesList
+        badNodeList.append(i)
 
 
 def get_smooth_mesh(dataDict, nodeList, badNodeList, *args):
