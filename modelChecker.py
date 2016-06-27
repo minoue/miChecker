@@ -1,11 +1,13 @@
 from PySide import QtCore, QtGui
 from collections import OrderedDict
-from gui import widget
+from . import widget
 from cmd import checkCmd
 from maya import OpenMayaUI
 import maya.cmds as cmds
 import textwrap
 import shiboken
+
+reload(checkCmd)
 
 
 def getMayaWindow():
