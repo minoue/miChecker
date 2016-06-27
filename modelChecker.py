@@ -2,15 +2,14 @@ from PySide import QtCore, QtGui
 from collections import OrderedDict
 from gui import widget
 from cmd import checkCmd
-from cmd import fixCmd
-import maya.OpenMayaUI as mui
+from maya import OpenMayaUI
 import maya.cmds as cmds
 import textwrap
 import shiboken
 
 
 def getMayaWindow():
-    ptr = mui.MQtUtil.mainWindow()
+    ptr = OpenMayaUI.MQtUtil.mainWindow()
     return shiboken.wrapInstance(long(ptr), QtGui.QMainWindow)
 
 
@@ -125,9 +124,6 @@ class ModelChecker(QtGui.QDialog):
 
             exec("self.%sResultLabel = widget.CustomLabel('%s')" % (i, i))
 
-            exec("self.%sFixButton = QtGui.QPushButton()" % i)
-            exec("self.%sFixButton.setFixedWidth(100)" % i)
-
         self.presetCB = QtGui.QComboBox()
         self.presetCB.addItem("All")
         self.presetCB.addItem("Topology")
@@ -152,58 +148,24 @@ class ModelChecker(QtGui.QDialog):
         self.searchButton.setFixedHeight(150)
         self.searchButton.clicked.connect(self.search)
 
-        # fix button widgets
-        self.historyFixButton.setText('Delete All')
-        self.historyFixButton.clicked.connect(self.fix_history)
-        self.transformFixButton.setText('Feeeze All')
-        self.transformFixButton.clicked.connect(self.fix_transform)
-        self.trianglesFixButton.setEnabled(False)
-        self.nGonsFixButton.setEnabled(False)
-        self.nonManifoldVtxFixButton.setEnabled(False)
-        self.nonManifoldEdgesFixButton.setEnabled(False)
-        self.laminaFacesFixButton.setEnabled(False)
-        self.concaveFacesFixButton.setEnabled(False)
-        self.badExtraordinaryVtxFixButton.setEnabled(False)
-        self.oppositeFixButton.setText('Fix All')
-        self.oppositeFixButton.clicked.connect(self.fix_opposite)
-        self.doubleSidedFixButton.setText('Fix All')
-        self.doubleSidedFixButton.clicked.connect(self.fix_doublesided)
-        self.intermediateObjFixButton.setText('Delete All')
-        self.intermediateObjFixButton.clicked.connect(
-            self.fix_intermediate_obj)
-        self.shapeNamesFixButton.setText('Fix All')
-        self.shapeNamesFixButton.clicked.connect(self.fix_shape_names)
-        self.duplicateNamesFixButton.setEnabled(False)
-        self.smoothPreviewFixButton.setText('Fix All')
-        self.smoothPreviewFixButton.clicked.connect(self.fix_smooth_preview)
-        self.defaultShaderFixButton.setText('Set Lambert1')
-        self.defaultShaderFixButton.clicked.connect(self.fix_shader)
-        self.geoSuffixFixButton.setEnabled(False)
-        self.lockedChannelsFixButton.setText('Unlock All')
-        self.lockedChannelsFixButton.clicked.connect(self.fix_locked_channels)
-        self.keyframesFixButton.setText('Delete All')
-        self.keyframesFixButton.clicked.connect(self.fix_keyframes)
-
         # progress bar
         self.progressBar = QtGui.QProgressBar()
-
-        # status bar
-        self.statusBar = QtGui.QStatusBar()
-        self.statusBar.showMessage("")
 
     def layoutUI(self):
         # Layout for the selected object.
         topLayout = widget.CustomBoxLayout(QtGui.QBoxLayout.LeftToRight)
         topLayout.addWidget(self.selectedLE)
 
-        midLayout = widget.CustomBoxLayout(QtGui.QBoxLayout.LeftToRight)
+        # midLayout = widget.CustomBoxLayout(QtGui.QBoxLayout.LeftToRight)
 
         checkBoxLayout = widget.CustomBoxLayout(QtGui.QBoxLayout.TopToBottom)
         checkBoxLayout.addWidget(self.presetCB)
         for i in self.checkList:
             exec("checkBoxLayout.addWidget(self.%sCheckBox)" % i)
         for num in range(6):
-            exec("checkBoxLayout.addWidget(self.geoSuffixLineEdit0%s)" % str(num + 1))
+            exec(
+                "checkBoxLayout.addWidget(self.geoSuffixLineEdit0%s)"
+                % str(num + 1))
         checkBoxLayout.addWidget(self.resetButton)
 
         scrollArea = QtGui.QScrollArea(self)
@@ -220,7 +182,6 @@ class ModelChecker(QtGui.QDialog):
         for i in self.checkList:
             subLayout = widget.CustomBoxLayout(QtGui.QBoxLayout.LeftToRight)
             exec("subLayout.addWidget(self.%sResultLabel)" % i)
-            exec("subLayout.addWidget(self.%sFixButton)" % i)
             exec("rightLayout.addLayout(subLayout)")
 
         # Set splitter
@@ -240,7 +201,6 @@ class ModelChecker(QtGui.QDialog):
         mainLayout.addLayout(topLayout)
         mainLayout.addWidget(midSplitter)
         mainLayout.addWidget(self.progressBar)
-        mainLayout.addWidget(self.statusBar)
 
         self.setLayout(mainLayout)
 
@@ -289,17 +249,21 @@ class ModelChecker(QtGui.QDialog):
 
         for check in self.checkList:
             exec("self.%sListWidget.clear()" % check)
-            exec("self.%sListWidget.addItems(self.dataDict[currentItem][check])" % check)
+            exec(
+                "self.%sListWidget.addItems(self.dataDict[currentItem][check])"
+                % check)
 
     def errorClicked(self, *args):
         if args[0] is None:
             return
         try:
-            selectedItems = ["*" + i.text() for i in args[0].listWidget().selectedItems()]
+            selectedItems = ["*" + i.text() for i
+                             in args[0].listWidget().selectedItems()]
             cmds.select(selectedItems, r=True)
             cmds.setFocus("MayaWindow")
         except ValueError:
-            """ When channels/attributes/etc are selected, do not try to select """
+            """ When channels/attributes/etc are selected,
+                do not try to select """
             pass
 
     def resetSetting(self):
@@ -346,7 +310,8 @@ class ModelChecker(QtGui.QDialog):
 
         for i in self.checkList:
             ifblock = """\
-            %sResult = [self.dataDict[child]['%s'] for child in self.allDagnodes]\n
+            %sResult = [self.dataDict[child]['%s'] for child
+                        in self.allDagnodes]\n
             if self.%sCheckBox.checkState() == 2:
                 if %sResult.count([]) == len(%sResult):\n
                     self.%sResultLabel.toGreen()\n
@@ -371,7 +336,6 @@ class ModelChecker(QtGui.QDialog):
     def initProgressbar(self, list, word):
         self.progressBar.reset()
         self.progressBar.setRange(1, len(list))
-        self.statusBar.showMessage('Searching %s...' % word)
 
     def clear(self):
         """ Clear all list widgets """
@@ -398,7 +362,6 @@ class ModelChecker(QtGui.QDialog):
 
         for name, func in zip(self.checkList, self.functionList):
             if self.checkList[name] is True:
-                self.statusBar.showMessage('Searching %s...' % name)
                 suffix = self.getSuffixList()
                 func(self.dataDict, self.allDagnodes, self.badNodeList, suffix)
                 self.incrementProgressbar()
@@ -407,39 +370,7 @@ class ModelChecker(QtGui.QDialog):
         self.badNodeList = list(set(self.badNodeList))
         self.badNodeListWidget.addItems(self.badNodeList)
 
-        self.statusBar.showMessage('Searching finished...')
-
         self.changeLabelColorbyResult()
-
-    def fix_history(self):
-        fixCmd.delete_history(self.badNodeList)
-
-    def fix_transform(self):
-        fixCmd.freeze_transform(self.badNodeList)
-
-    def fix_opposite(self):
-        fixCmd.fix_opposite(self.badNodeList)
-
-    def fix_doublesided(self):
-        fixCmd.fix_doublesided(self.badNodeList)
-
-    def fix_intermediate_obj(self):
-        fixCmd.delete_intermediate_obj(self.badNodeList)
-
-    def fix_shape_names(self):
-        fixCmd.fix_shape_names(self.badNodeList)
-
-    def fix_smooth_preview(self):
-        fixCmd.fix_smooth_preview(self.badNodeList)
-
-    def fix_shader(self):
-        fixCmd.assign_default_shader(self.badNodeList)
-
-    def fix_locked_channels(self):
-        fixCmd.unlock_channels(self.badNodeList)
-
-    def fix_keyframes(self):
-        fixCmd.delete_keyframes(self.badNodeList)
 
     def checkAll(self, status):
         if status is True:
@@ -478,7 +409,9 @@ class ModelChecker(QtGui.QDialog):
             pass
 
 
-def main(d):
+def main(dock=False):
+    """ main """
+
     global checkerWin
     try:
         checkerWin.close()
@@ -494,13 +427,13 @@ def main(d):
     checkerWin = ModelChecker(sel)
     checkerWin.setObjectName("checker_mainWindow")
 
-    if d is True:
+    if dock is True:
         from pymel import all as pm
 
         if pm.dockControl('model_checker_dock', q=True, ex=1):
             pm.deleteUI('model_checker_dock')
 
-        floatingLayout = pm.paneLayout(configuration='single', w=1000)
+        floatingLayout = pm.paneLayout(configuration='single', w=700)
 
         pm.dockControl(
             'model_checker_dock',
