@@ -370,7 +370,21 @@ class ModelChecker(QtGui.QDialog):
 
         # Remove duplicate items and add to list widget
         self.badNodeList = list(set(self.badNodeList))
-        self.badNodeListWidget.addItems(self.badNodeList)
+
+        for item in self.badNodeList:
+
+            # Add icons based on node type
+            nt = cmds.nodeType(item)
+            if nt == "transform":
+                iconPath = r":/transform.svg"
+            elif nt == "mesh":
+                iconPath = r":/mesh.svg"
+            else:
+                iconPath = r":/menuIconHelp.png"
+            widgetItem = QtGui.QListWidgetItem(item)
+            widgetItem.setIcon(QtGui.QIcon(iconPath))
+
+            self.badNodeListWidget.addItem(widgetItem)
 
         self.changeLabelColorbyResult()
 
