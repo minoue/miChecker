@@ -346,8 +346,9 @@ def get_duplicated_names(dataDict, nodeList, badNodeList, *args):
     duplicateNamesList = [i for i in collection if collection[i] > 1]
 
     for i in nodeList:
-        dataDict[i]['duplicateNames'] = duplicateNamesList
-        badNodeList.append(i)
+        if i.split("|")[-1] in duplicateNamesList:
+            dataDict[i]['duplicateNames'] = duplicateNamesList
+            badNodeList.append(i)
 
 
 def get_smooth_mesh(dataDict, nodeList, badNodeList, *args):
