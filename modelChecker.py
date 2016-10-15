@@ -1,6 +1,5 @@
 from Qt import QtWidgets, QtCore, QtGui
 from collections import OrderedDict
-from . import widget
 from cmd import checkCmd
 from maya import OpenMayaUI
 import maya.cmds as cmds
@@ -9,7 +8,7 @@ try:
     import shiboken
 except ImportError:
     import shiboken2 as shiboken
-
+import checkCmd
 reload(checkCmd)
 
 
