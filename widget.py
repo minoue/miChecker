@@ -1,7 +1,7 @@
-from PySide import QtCore, QtGui
+from Qt import QtWidgets
 
 
-class CustomBoxLayout(QtGui.QBoxLayout):
+class CustomBoxLayout(QtWidgets.QBoxLayout):
     """ Custom layout with less spacing between widgets """
 
     def __init__(self, parent=None):
@@ -11,7 +11,7 @@ class CustomBoxLayout(QtGui.QBoxLayout):
         self.setContentsMargins(2, 2, 2, 2)
 
 
-class CustomLabel(QtGui.QLabel):
+class CustomLabel(QtWidgets.QLabel):
     """ Custom QLabel to show green/red color """
 
     def __init__(self, parent=None):
