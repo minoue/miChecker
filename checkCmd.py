@@ -55,6 +55,18 @@ def extend_to_shape(path):
         return None
 
 
+def get_shapes(path):
+    """ Get shape nodes from transform node
+    Args:
+        path (str) : full path of transform node
+    Return:
+        shapes (list) : list of shape nodes
+    """
+
+    shapes = cmds.listRelatives(path, ad=True, fullPath=True, type="mesh")
+    return shapes
+
+
 def get_selection_list(nodeList):
     slist = OpenMaya.MSelectionList()
     for i in nodeList:
@@ -311,16 +323,18 @@ def get_doublesided(dataDict, nodeList, badNodeList, *args):
 def get_intermediate_obj(dataDict, nodeList, badNodeList, *args):
 
     for i in nodeList:
-        shape = extend_to_shape(i)
-        if shape is None:
+        shapes = get_shapes(i)
+        if shapes is None:
             continue
         else:
-            oppositeStatus = cmds.getAttr(i + ".intermediateObject")
-            if oppositeStatus is True:
-                dataDict[i]['intermediateObject'] = [i]
-                badNodeList.append(i)
-            else:
-                dataDict[i]['intermediateObject'] = []
+            for shape in shapes:
+                oppositeStatus = cmds.getAttr(shape + ".intermediateObject")
+                if oppositeStatus is True:
+                    dataDict[i]['intermediateObj'] = [shape]
+                    badNodeList.append(i)
+                    return
+                else:
+                    dataDict[i]['intermediateObj'] = []
 
 
 def get_bad_shapenames(dataDict, nodeList, badNodeList, *args):

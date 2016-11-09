@@ -1,14 +1,14 @@
 from Qt import QtWidgets, QtCore, QtGui
 from collections import OrderedDict
-from cmd import checkCmd
 from maya import OpenMayaUI
-import maya.cmds as cmds
-import textwrap
+from maya import cmds
+from . import checkCmd
+from . import widget
 try:
     import shiboken
 except ImportError:
     import shiboken2 as shiboken
-import checkCmd
+import textwrap
 reload(checkCmd)
 
 
@@ -162,7 +162,8 @@ class ModelChecker(QtWidgets.QDialog):
 
         # midLayout = widget.CustomBoxLayout(QtWidgets.QBoxLayout.LeftToRight)
 
-        checkBoxLayout = widget.CustomBoxLayout(QtWidgets.QBoxLayout.TopToBottom)
+        checkBoxLayout = widget.CustomBoxLayout(
+            QtWidgets.QBoxLayout.TopToBottom)
         checkBoxLayout.addWidget(self.presetCB)
         for i in self.checkList:
             exec("checkBoxLayout.addWidget(self.%sCheckBox)" % i)
@@ -184,7 +185,8 @@ class ModelChecker(QtWidgets.QDialog):
         rightLayout = widget.CustomBoxLayout(QtWidgets.QBoxLayout.TopToBottom)
         rightLayout.addWidget(self.searchButton)
         for i in self.checkList:
-            subLayout = widget.CustomBoxLayout(QtWidgets.QBoxLayout.LeftToRight)
+            subLayout = widget.CustomBoxLayout(
+                QtWidgets.QBoxLayout.LeftToRight)
             exec("subLayout.addWidget(self.%sResultLabel)" % i)
             exec("rightLayout.addLayout(subLayout)")
 
@@ -211,18 +213,19 @@ class ModelChecker(QtWidgets.QDialog):
     def initData(self):
 
         sel = self.selectedLE.text()
-        self.allDagnodes = cmds.listRelatives(
+        self.allDagNodes = cmds.listRelatives(
             sel,
             ad=True,
             fullPath=True,
             type="transform")
 
-        if self.allDagnodes is None:
-            self.allDagnodes = []
-        self.allDagnodes.append(sel)
+        if self.allDagNodes is None:
+            self.allDagNodes = []
+        self.allDagNodes.append(sel)
 
+        # Initialize dataDict
         self.dataDict = {}
-        for item in self.allDagnodes:
+        for item in self.allDagNodes:
             self.dataDict[item] = {}
             for check in self.checkList:
                 self.dataDict[item][check] = []
@@ -315,7 +318,7 @@ class ModelChecker(QtWidgets.QDialog):
         for i in self.checkList:
             ifblock = """\
             %sResult = [self.dataDict[child]['%s'] for child
-                        in self.allDagnodes]\n
+                        in self.allDagNodes]\n
             if self.%sCheckBox.checkState() == 2:
                 if %sResult.count([]) == len(%sResult):\n
                     self.%sResultLabel.toGreen()\n
@@ -355,7 +358,7 @@ class ModelChecker(QtWidgets.QDialog):
         self.initData()
         self.badNodeListWidget.clear()
 
-        # List for adding to badnodelistwidget
+        # List to adding nodes to badnodelistwidget
         self.badNodeList = []
 
         # Number of checks
@@ -364,10 +367,11 @@ class ModelChecker(QtWidgets.QDialog):
         self.progressBar.reset()
         self.progressBar.setRange(1, num)
 
+        # Run seach commands for each error
         for name, func in zip(self.checkList, self.functionList):
             if self.checkList[name] is True:
                 suffix = self.getSuffixList()
-                func(self.dataDict, self.allDagnodes, self.badNodeList, suffix)
+                func(self.dataDict, self.allDagNodes, self.badNodeList, suffix)
                 self.incrementProgressbar()
 
         # Remove duplicate items and add to list widget
